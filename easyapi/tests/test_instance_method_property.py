@@ -1,0 +1,128 @@
+import json
+
+from easyapi.tests.factories import CompanyFactory, ProjectFactory
+from easyapi.tests.test_project.models import Project
+
+
+__author__ = 'mikhailturilin'
+
+import pytest
+
+
+@pytest.mark.django_db
+def test_list_endpoint(api_client):
+    # create 3 companies
+    for i in range(3):
+        CompanyFactory()
+
+    response = api_client.get('/api/company/')
+    response_data = json.loads(response.content)
+
+    assert len(response_data) == 3
+
+
+@pytest.mark.django_db
+def test_instance_method_scalar_return(api_client):
+    # create 3 companies
+    company = CompanyFactory()
+
+    for i in range(3):
+        ProjectFactory(company=company, budget=(i + 1) * 100)
+
+    response = api_client.get('/api/company/%d/total_budget/' % company.pk)
+    print response.content
+    response_data = json.loads(response.content)
+
+    assert response_data == 600
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("function", ["project_list", "project_qs"])
+def test_instance_method_list_qs(api_client, function):
+    # create 3 companies
+    company = CompanyFactory()
+
+    for i in range(3):
+        ProjectFactory(company=company, budget=(i + 1) * 100)
+
+    response = api_client.get('/api/company/%d/%s/' % (company.pk, function))
+    print response.content
+    response_data = json.loads(response.content)
+
+    assert len(response_data) == 3
+    for project_dict in response_data:
+        check_project_dict(project_dict)
+
+
+@pytest.mark.django_db
+def test_instance_method_with_scalar_param(api_client):
+    # create 3 companies
+    company = CompanyFactory()
+
+    response = api_client.post('/api/company/%d/multiply_by_100/' % company.pk, data={'number': 23})
+    print response.content
+    response_data = json.loads(response.content)
+
+    assert response_data == 2300
+
+
+def check_project_dict(project_dict):
+    assert 'name' in project_dict
+    assert 'budget' in project_dict
+    assert 'start_date' in project_dict
+    assert 'company' in project_dict
+    assert 'is_open' in project_dict
+
+
+@pytest.mark.django_db
+def test_model_fields(api_client):
+    # create 3 companies
+    projects = [ProjectFactory() for i in range(3)]
+
+    response = api_client.get('/api/project/%d/' % projects[0].pk)
+    response_data = json.loads(response.content)
+
+    project_dict = response_data
+    check_project_dict(project_dict)
+
+
+@pytest.mark.django_db
+def test_string_property(api_client):
+    company = CompanyFactory()
+
+    response = api_client.get('/api/company/%d/' % company.pk)
+
+    print response.content
+    response_data = json.loads(response.content)
+
+    assert 'title' in response_data
+    assert response_data['title'] == company.title
+
+
+@pytest.mark.django_db
+def test_model_property(api_client):
+    company = CompanyFactory()
+    for i in range(3):
+        ProjectFactory(company=company, budget=(i + 1) * 100)
+
+    response = api_client.get('/api/company/%d/' % company.pk)
+
+    print response.content
+    response_data = json.loads(response.content)
+
+    assert 'first_project' in response_data
+    assert isinstance(response_data['first_project'], int)
+
+
+@pytest.mark.django_db
+def test_related_object_lookup(api_client):
+    project = ProjectFactory()
+
+    response = api_client.get('/api/project/%d/' % project.pk)
+
+    print response.content
+    response_data = json.loads(response.content)
+
+    assert 'company_name' in response_data
+    assert response_data['company_name'] == project.company.name
+
