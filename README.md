@@ -1,4 +1,4 @@
-EasyAPi
+EasyAPI
 =======
 
 EasyAPi is an add-on to Django Rest Framework that enables quickly add REST API to 
