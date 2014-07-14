@@ -4,8 +4,14 @@ EasyAPi
 EasyAPi is an add-on to Django Rest Framework that enables quickly add REST API to 
 a Django application to use the app's models in from JavaScript (Angular, Backbone etc).
 
+## Usage
 
-##Expose model’s method (DONE)
+TBD
+
+
+## Features
+
+###Expose model’s method (DONE)
 
 Every Django model has methods that contain business logic. These methods would be obviously uesful to AJAX application,
 because they are already tested and implemented. Since an increasingly larger part of any apps is getting implemented in Angular (JS/Dart),
@@ -20,7 +26,7 @@ The API should be able to use methods that returns:
 
 The decorator should describe the type of the parameters and whether each of them is required.
 
-##Expose model’s properties (DONE)
+###Expose model’s properties (DONE)
 Create a decorator to automatically add the model’s property to the serialized form of the model.
 
     class MyModel(models.Model):
@@ -33,13 +39,13 @@ Create a decorator to automatically add the model’s property to the serialized
         def my_name(self):
             return self.name.title()
 
-##Expose manager method
+###Expose manager method
 
 Manager’s methods are used to perform operations on a sets of models. These methods could be also useful by
 Angular application.
 
 
-## Automatically create viewsets for all models in the application
+### Automatically create viewsets for all models in the application
 
 I'd like to be able to quickly expose the whole app in one line of code using standard serialization methods.
 
@@ -48,7 +54,7 @@ The following code exposes all models of two Django applications 'projects' and 
     router = AutoAppRouter('projects', 'orders')
 
 
-##Expose model’s foreign keys as Hypermedia links
+###Expose model’s foreign keys as Hypermedia links
 
 By default foreign keys are exposed as ids. This is the best default strategy, however sometimes it’s useful to explore the models in hypermedia style (in Postman for example). The default serializer in EasyAPI should contin “_links” section that exposes the foreign keys similar to:
 
@@ -69,7 +75,7 @@ By default foreign keys are exposed as ids. This is the best default strategy, h
             }]
         },
 
-##Embed foreign key objects into the model’s JSON
+###Embed foreign key objects into the model’s JSON
 
 Sometimes we need to get the embedded object inside the model. For example, when we get userprofile we want use as well. There will be a parameter “_embedded” that accepts a list of embedded objects. For example:
 
@@ -113,7 +119,7 @@ Result:
         }
     }
 
-##Reverse relationships as sub-URL
+###Reverse relationships as sub-URL
 
 We should be able to get reverse relation sets as sub-URL. For example is the Company has reverse relation “departments”, we should be able to get a list of departments using:
 
