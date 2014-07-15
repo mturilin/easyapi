@@ -2,7 +2,9 @@ import inspect
 
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
+
 from easyapi.encoder import ModelJSONRenderer
+from easyapi.filters import QuerySetFilterBackend, FILTER_ALL
 from easyapi.params import extract_rest_params
 
 
@@ -38,8 +40,30 @@ class ManagerMethodWrapper(object):
         return Response(result)
 
 
+# class InstanceViewSetMetaClass(type):
+#     def __new__(cls, name, bases, attrs):
+#
+#         filter_backend = attrs.get('filter_backend', None)
+#         model = attrs.get('model', None)
+#
+#         if filter_backend and model:
+#
+#
+#
+#         return super(InstanceViewSetMetaClass, cls).__new__(cls, name, bases, attrs)
+#
+
 class InstanceViewSet(ModelViewSet):
+    # __metaclass__ = InstanceViewSetMetaClass
+
     renderer_classes = (ModelJSONRenderer, )
+    filter_backend = QuerySetFilterBackend
+
+    filtering = {
+        '*': {
+            'filters': FILTER_ALL
+        }
+    }
 
 
     @classmethod

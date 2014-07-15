@@ -126,3 +126,4 @@ def test_related_object_lookup(api_client):
     assert 'company_name' in response_data
     assert response_data['company_name'] == project.company.name
 
+

@@ -1,6 +1,10 @@
-from django.conf import settings
-from django.db.models import FieldDoesNotExist, Q
+from django.db.models.fields.related import ForeignKey
+
+from rest_framework.exceptions import ParseError
 from rest_framework.filters import BaseFilterBackend
+
+from easyapi.params import smart_bool, model_param
+
 
 __author__ = 'mikhail turilin'
 
@@ -13,157 +17,180 @@ FILTER_ALL = {
 FILTER_EXACT = 'exact'
 FILTER_IN = 'in'
 
-ICONTAINS_SPLIT = getattr(settings, 'QUERY_SET_FILTERS_ICONTAINS_SPLIT', True)
+
+def in_converter(base_converter):
+    def inner(joined_value):
+        value_list = joined_value.split(',')
+        return map(base_converter, value_list)
+
+    return inner
 
 
-def convert(value, datatype):
-    if datatype == 'bool':
-        val = value.lower()
-        if val == "true":
-            return True
+class Filter(object):
+    def __init__(self, key, base_converter, field_path, condition):
+        self.key = key
+        self.condition = condition
+        self.field_path = field_path
+        self.base_converter = base_converter
 
-        if val == "false":
-            return False
+    @property
+    def full_converter(self):
+        if self.condition == FILTER_IN:
+            return in_converter(self.base_converter)
 
-        raise ValueError("Expected 'true' or 'false', received '%s'" % value)
-
-    if datatype == "string":
-        return value
-
-    if datatype == "int":
-        return int(value)
-
-    if datatype == "float":
-        return float(value)
-
-    raise ValueError("Unknown datatype %s" % datatype)
+        return self.base_converter
 
 
-def get_filters(definition):
-    if not definition:
-        return [FILTER_EXACT]
-
-    if isinstance(definition, basestring):
-        return [FILTER_EXACT]
-
-    if isinstance(definition, dict):
-        return definition.get('filters', [FILTER_EXACT])
-
-    if isinstance(definition, (list, set, tuple)):
-        if set(definition) <= FILTER_ALL:
-            return definition
-        raise ValueError("Defininition containes unknown filter rules %s" % str(definition))
-
-    raise ValueError("Filter definition could de only list or dict")
+def get_model_field(model, field_name):
+    field = model._meta.get_field(field_name)
+    return field
 
 
-class UnknownDatatype(Exception): pass
+class QuerySetFilter(object):
+    def __init__(self, queryset, request, filtering, ordering=None):
+        self.ordering = ordering
+        self.filtering = filtering
+        self.request = request
+        self.queryset = queryset
+
+    @property
+    def model_fields(self):
+        return [field for field in self.get_model()._meta.fields]
+
+    @property
+    def model_fields_names(self):
+        return set([field.name for field in self.model_fields])
+
+    @property
+    def all_params(self):
+        return self.request.GET
+
+    @property
+    def filter_params(self):
+        return {key[1:]: value for key, value in self.all_params.iteritems() if key.startswith('@')}
+
+    def filtered_queryset(self):
+        queryset = self.queryset
+
+        for filter_key, value in self.filter_params.iteritems():
+            queryset = queryset.filter(**{
+                filter_key: self.get_converter(filter_key)(value)
+            })
+
+        try:
+            order_by = self.all_params['order_by']
+            order_fields = order_by.split(',')
+            if '*' not in self.ordering and set(f.rstrip('-') for f in order_fields) <= set(self.ordering):
+                raise ParseError("Invalid ordering %s" % order_by)
+
+            queryset = queryset.order_by(*order_fields)
+        except KeyError:
+            pass
+
+        return queryset
 
 
-def get_datatype(field, definition, queryset):
-    if isinstance(definition, basestring):
-        return definition
+    def get_model(self):
+        return self.queryset.model
 
-    if isinstance(definition, dict) and 'datatype' in definition:
-        return definition['datatype']
 
-    try:
-        internal_type = queryset.model._meta.get_field(field).get_internal_type()
+    def get_main_field(self, main_field_name):
+        model = self.get_model()
+        field = get_model_field(model, main_field_name)
+        return field
+
+
+    def get_converter(self, filter_key):
+        return self.get_filter(filter_key).full_converter
+
+    def get_filter(self, filter_key):
+        components = filter_key.split("__")
+        main_field_name = components[0]
+
+        # if the field is unknown - filtering is not allowed
+        if main_field_name not in self.model_fields_names:
+            raise ParseError("Invalid filter key %s" % filter_key)
+
+        if len(components) == 1:
+            return Filter(key=filter_key, base_converter=self.get_main_field_converter(main_field_name),
+                          field_path=[main_field_name],
+                          condition=[FILTER_EXACT])
+
+        if len(components) == 2 and components[1] in self.get_conditions(main_field_name):
+            return Filter(key=filter_key, base_converter=self.get_main_field_converter(main_field_name),
+                          field_path=[main_field_name],
+                          condition=components[1])
+
+
+        # we might have foreign key chain field1__field2__field3__field4__condition
+        model = self.get_model()
+        field = self.get_main_field(main_field_name)
+
+        for index, component in enumerate(components):
+            is_last = index == len(components) - 1
+
+            if is_last and index > 1 and component in FILTER_ALL:
+                return Filter(key=filter_key, base_converter=self.get_field_converter(field),
+                              field_path=components[:-1],
+                              condition=component)
+
+            field = get_model_field(model, component)
+
+            if is_last:
+                return Filter(key=filter_key, base_converter=self.get_field_converter(field),
+                              field_path=components,
+                              condition=[FILTER_EXACT])
+
+            if not isinstance(field, ForeignKey):
+                raise ParseError("Invalid filter key %s" % filter_key)
+
+            model = field.rel.to
+
+        raise RuntimeError("We should never be here")
+
+
+    def get_main_field_converter(self, main_field_name):
+        definition = self.get_filtering_def(main_field_name)
+        try:
+            return definition['datatype']
+        except KeyError:
+            return self.get_field_converter(self.get_main_field(main_field_name))
+
+
+    def get_field_converter(self, field):
+        internal_type = field.get_internal_type()
         if internal_type == 'BooleanField':
-            return 'bool'
+            return smart_bool
 
         if internal_type == 'IntegerField' or internal_type == 'AutoField':
-            return 'int'
+            return int
 
         if internal_type in {'FloatField', 'DecimalField'}:
-            return 'float'
+            return float
 
         if internal_type in {'CharField', 'TextField'}:
-            return 'string'
+            return str
 
-        raise UnknownDatatype("Field type is unknown '%s' for model field '%s'" % (internal_type, field))
+        if internal_type in {'ForeignKey'}:
+            return model_param(field.rel.to)
 
-    except (AttributeError, FieldDoesNotExist):
-        pass
+        raise ParseError("Unsupported field type '%s' for model field '%s'" % (internal_type, field))
 
-    raise UnknownDatatype("Filter datatype is missing for non-model field '%s'" % field)
-
-
-def filter_queryset(queryset, request, filtering, ordering=None):
-    """
-
-    :param queryset: Django QuerySet
-    :param request: HttpRequest
-    :param filtering: should be a map of django query criteria (or '*') to filtering definition. Definition could be:
-      1. String = datatype (bool, int, float, string)
-      2. Dict having the following fields:
-        - 'datatype' - automatically resolved if it's the field of the queryset's model
-        - 'filters' - list of the filter keywords ('in', 'exact' etc)
-    :param ordering: queryset's order_by argument
-    :return: queryset with added filters
-    """
-    ordering = set(ordering) or set()
-
-    fields = set(filtering.keys())
-    filters = {field: get_filters(definition) for field, definition in filtering.iteritems()}
-
-    model_fields = [field.name for field in queryset.model._meta.fields]
-
-    for p, v in request.GET.iteritems():
-        field = p
-        value = v
-        query_term = "exact"
-
-        # chech if we have a case of filter ending with query term, such as __contains or __gte
-        p_split = p.split("__")
-        if len(p_split) > 1:  # it's possible we have a query term (otherwise we will use just a field)
-            term_candidate = p_split[-1]
-            field_candidate = '__'.join(p_split[:-1])
-            if {field_candidate, '*'}.intersection(fields) and term_candidate in FILTER_ALL:
-                field = field_candidate
-                query_term = term_candidate
-                if term_candidate == 'in':  # for in we need to split the list
-                    v = v.split(',')
-
-        if field in fields or ('*' in fields and field in model_fields):
+    def get_filtering_def(self, main_field_name):
+        try:
+            filtering_def = self.filtering[main_field_name]
+        except KeyError:
             try:
-                datatype = get_datatype(field, filtering.get(field, None), queryset)
-            except UnknownDatatype:
-                # meaining this is not a filter field - some other
-                continue
-        else:
-            continue  # field is not in the filtering
+                filtering_def = self.filtering['*']
+            except KeyError:
+                raise ParseError("Unknown field %s" % main_field_name)
+        return filtering_def
 
-        if not any(query_term in filters.get(f, []) for f in {field, '*'}):
-            raise ValueError("Filtering for field '%s' with query term '%s' is not allowed" % (field, query_term))
-
-        # for contains and icontains queries we should split them
-        if query_term in ('contains', 'icontains') and datatype == 'string' and ICONTAINS_SPLIT:
-            q = Q()
-
-            for subvalue in v.split():
-                q &= Q(**{p: subvalue})
-            print q
-            queryset = queryset.filter(q)
-        else:
-            queryset = queryset.filter(**{p: convert(v, datatype)})
-
-    if 'order_by' in request.GET:
-        order_fields = []
-        for order_field_source in request.GET['order_by'].split(','):
-            if order_field_source[0] == '-':
-                order_field = order_field_source[1:]
-            else:
-                order_field = order_field_source
-
-            if not {order_field, '*'}.intersection(ordering):
-                raise ValueError("Ordering for field '%s' is not allowed" % order_field)
-
-            order_fields.append(order_field_source)
-
-        queryset = queryset.order_by(*order_fields)
-
-    return queryset
+    def get_conditions(self, main_field):
+        try:
+            return self.get_filtering_def(main_field)['filters']
+        except KeyError:
+            return [FILTER_EXACT]
 
 
 class QuerySetFilterBackend(BaseFilterBackend):
@@ -176,6 +203,6 @@ class QuerySetFilterBackend(BaseFilterBackend):
         except AttributeError:
             return queryset
 
-        return filter_queryset(queryset, request, filtering, ordering)
+        return QuerySetFilter(queryset, request, filtering, ordering).filtered_queryset()
 
 

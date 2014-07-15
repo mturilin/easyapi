@@ -1,5 +1,3 @@
-import inspect
-from rest_framework import fields
 from rest_framework.serializers import ModelSerializer
 
 __author__ = 'mikhailturilin'

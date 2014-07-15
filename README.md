@@ -54,12 +54,14 @@ The following code exposes all models of two Django applications 'projects' and 
     router = AutoAppRouter('projects', 'orders')
 
 
-### Automatic filtering for all fields in the model (IN PROGRESS)
+### Automatic filtering for all fields in the model (DONE)
 
 I'd like to support the standard filtering criteria for Django QuerySets. For example, we should be able to get all
 companies form Germany with request:
 
-    GET /api/company/?country__name__icontains=Germany
+    GET /api/company/?@country__name__icontains=Germany
+
+Note: to discern filter criterias from other query string params they start with @ sign.
 
 
 ###Expose model’s foreign keys as Hypermedia links
