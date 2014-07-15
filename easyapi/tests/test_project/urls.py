@@ -1,7 +1,7 @@
 from django.conf.urls import patterns, include, url
 
 from django.contrib import admin
-from easyapi.tests.test_project.api import router
+from easyapi.tests.test_project.api import router, auto_router
 
 admin.autodiscover()
 
@@ -16,4 +16,5 @@ urlpatterns = patterns('',
 
     url(r'^admin/', include(admin.site.urls)),
     url(r'^api/', include(router.urls)),
+    url(r'^auto-api/', include(auto_router.urls)),
 )

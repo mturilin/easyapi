@@ -105,7 +105,7 @@ def extract_rest_params(request, param_types, required_params=None):
 
     new_kwargs = {}
 
-    data_dict = request.DATA
+    data_dict = MergeDict(request.DATA, request.GET)
 
     for (param_name, param_type) in param_types.iteritems():
 

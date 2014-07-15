@@ -9,6 +9,8 @@ __author__ = 'mikhailturilin'
 
 
 class CompanyManager(models.Manager):
+
+    @rest_method(arg_types={'country': str})
     def select_by_country(self, country):
         return self.filter(country=country)
 
@@ -22,6 +24,7 @@ class Company(models.Model):
         'title': Field(),
     }
 
+    objects = CompanyManager()
 
     @rest_method()
     def total_budget(self):

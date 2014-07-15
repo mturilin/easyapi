@@ -1,4 +1,4 @@
-from easyapi.router import EasyApiRouter
+from easyapi.router import EasyApiRouter, AutoAppRouter
 from easyapi.tests.test_project.models import Company, Project
 from easyapi.viewsets import InstanceViewSet
 
@@ -13,3 +13,6 @@ class ProjectViewSet(InstanceViewSet):
 router = EasyApiRouter()
 router.register('company', CompanyViewSet)
 router.register('project', ProjectViewSet)
+
+
+auto_router = AutoAppRouter('test_project')

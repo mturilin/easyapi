@@ -14,6 +14,7 @@ class CompanyFactory(factory_django.DjangoModelFactory):
         model = Company
 
     name = fuzzy.FuzzyText()
+    country = fuzzy.FuzzyText(length=20)
 
 
 SIX_MONTH_EARLIER = date.today() - timedelta(days=int(30.5*6))

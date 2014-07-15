@@ -39,19 +39,27 @@ Create a decorator to automatically add the model’s property to the serialized
         def my_name(self):
             return self.name.title()
 
-###Expose manager method
+###Expose manager method (DONE)
 
 Manager’s methods are used to perform operations on a sets of models. These methods could be also useful by
 Angular application.
 
 
-### Automatically create viewsets for all models in the application
+### Automatically create viewsets for all models in the application (DONE)
 
 I'd like to be able to quickly expose the whole app in one line of code using standard serialization methods.
 
 The following code exposes all models of two Django applications 'projects' and 'orders':
 
     router = AutoAppRouter('projects', 'orders')
+
+
+### Automatic filtering for all fields in the model (IN PROGRESS)
+
+I'd like to support the standard filtering criteria for Django QuerySets. For example, we should be able to get all
+companies form Germany with request:
+
+    GET /api/company/?country__name__icontains=Germany
 
 
 ###Expose model’s foreign keys as Hypermedia links
