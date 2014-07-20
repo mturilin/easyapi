@@ -14,9 +14,13 @@ class CompanyManager(models.Manager):
     def select_by_country(self, country):
         return self.filter(country=country)
 
+class Category(models.Model):
+    name = models.TextField()
+
 
 class Company(models.Model):
     name = models.TextField()
+    category = models.ForeignKey(Category)
     country = models.CharField(max_length=100)
 
     extra_rest_fields = {

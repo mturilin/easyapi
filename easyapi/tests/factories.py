@@ -1,4 +1,4 @@
-from easyapi.tests.test_project.models import Project, Company
+from easyapi.tests.test_project.models import Project, Company, Category
 from datetime import timedelta, date
 from django.utils import timezone
 
@@ -9,10 +9,18 @@ from factory import fuzzy
 __author__ = 'mikhailturilin'
 
 
+class CategoryFactory(factory_django.DjangoModelFactory):
+    class Meta:
+        model = Category
+
+    name = fuzzy.FuzzyText()
+
+
 class CompanyFactory(factory_django.DjangoModelFactory):
     class Meta:
         model = Company
 
+    category = factory.SubFactory(CategoryFactory)
     name = fuzzy.FuzzyText()
     country = fuzzy.FuzzyText(length=20)
 
