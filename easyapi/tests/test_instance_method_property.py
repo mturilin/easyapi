@@ -70,7 +70,7 @@ def check_project_dict(project_dict):
     assert 'name' in project_dict
     assert 'budget' in project_dict
     assert 'start_date' in project_dict
-    assert 'company' in project_dict
+    assert 'company_id' in project_dict
     assert 'is_open' in project_dict
 
 

@@ -20,9 +20,9 @@ def test_embedded(staff_api_client):
 
     response_data = json.loads(response.content)
 
-    assert '_embedded' in response_data
-    assert 'company' in response_data['_embedded']
-    assert response_data['_embedded']['company']['id'] == company.id
+    # assert '_embedded' in response_data
+    assert 'company' in response_data
+    assert response_data['company']['id'] == company.id
 
 
 @pytest.mark.django_db
@@ -46,15 +46,13 @@ def test_embedded_in_embedded(staff_api_client):
 
     response_data = json.loads(response.content)
 
-    assert '_embedded' in response_data
-    assert 'company' in response_data['_embedded']
+    assert 'company' in response_data
 
-    company_dict = response_data['_embedded']['company']
+    company_dict = response_data['company']
     assert company_dict['id'] == company.id
 
-    assert '_embedded' in company_dict
-    assert 'category' in company_dict['_embedded']
-    category_dict = company_dict['_embedded']['category']
+    assert 'category' in company_dict
+    category_dict = company_dict['category']
     assert category_dict['id'] == company.category.id
 
 
@@ -72,15 +70,13 @@ def test_embedded_for_list(staff_api_client):
 
     project_dict = response_data[0]
 
-    assert '_embedded' in project_dict
-    assert 'company' in project_dict['_embedded']
+    assert 'company' in project_dict
 
-    company_dict = project_dict['_embedded']['company']
+    company_dict = project_dict['company']
     assert company_dict['id'] == company.id
 
-    assert '_embedded' in company_dict
-    assert 'category' in company_dict['_embedded']
-    category_dict = company_dict['_embedded']['category']
+    assert 'category' in company_dict
+    category_dict = company_dict['category']
     assert category_dict['id'] == company.category.id
 
 @pytest.mark.django_db

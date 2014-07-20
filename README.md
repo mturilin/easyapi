@@ -87,7 +87,7 @@ By default foreign keys are exposed as ids. This is the best default strategy, h
 
 ###Embed foreign key objects into the model’s JSON (DONE)
 
-Sometimes we need to get the embedded object inside the model. For example, when we get userprofile we want use as well. There will be a parameter “_embedded” that accepts a list of embedded objects. For example:
+Sometimes we need to get the embedded object inside the model. For example, when we get a profile we want the user as well. There will be a parameter “_embedded” that accepts a list of embedded objects. For example:
 
 Request:
 
@@ -96,13 +96,12 @@ Request:
 Result:
 
     {
-        “_embedded” : {
-            “user” : {
-                ...
-            },
-            “address” : {
-                ...
-            }
+        "user_id": 12,
+        “user” : {
+            ...
+        },
+        “address” : {
+            ...
         }
     }
 
@@ -115,18 +114,13 @@ Request:
 Result:
 
     {
-        “_embedded” : {
-            “company” : {
-                “id”: 1,
-        “_embedded” : {
+        “company_id” : 12,
+        “company” : {
+            “id”: 1,
             “address” : {
                 “street”: “1, Elm St.”
                 ...
             }
-        }
-                ...
-            },
-        }
     }
 
 ###Reverse relationships as sub-URL

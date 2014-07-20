@@ -11,12 +11,65 @@ from easyapi import BottomlessDict
 __author__ = 'mikhailturilin'
 
 
-class EmbeddedObjectsField(Field):
-    empty = {}
 
-    def __init__(self, embedded_def_dict=None):
-        super(EmbeddedObjectsField, self).__init__()
+class AutoModelSerializer(ModelSerializer):
+
+    def __init__(self, instance=None, data=None, files=None, context=None, partial=False, many=None,
+                 allow_add_remove=False, embedded_def_dict=None, **kwargs):
         self.embedded_def_dict = embedded_def_dict
+        super(AutoModelSerializer, self).__init__(instance, data, files, context, partial, many, allow_add_remove,
+                                                  **kwargs)
+
+    def get_fields(self):
+        the_fields = super(AutoModelSerializer, self).get_fields()
+        model = self.opts.model
+
+        try:
+            the_fields.update(model.extra_rest_fields)
+        except AttributeError:
+            pass
+
+        return the_fields
+
+    def get_default_fields(self):
+        """
+        Overriding get_default_fields to do two things:
+        1. Add nested models as serializer fields
+        2. Add suffix '_id' to all foreign keys
+        """
+        ret = super(AutoModelSerializer, self).get_default_fields()
+
+        embedded_def_dict = self.get_embedded_def_dict() or {}
+
+        # Deal with forward relationships
+        cls = self.opts.model
+        opts = get_concrete_model(cls)._meta
+
+        related_fields = [field for field in opts.fields if field.serialize if field.rel]
+
+        # checking that there are no unknown embedded fields
+        related_fields_names = set([field.name for field in related_fields])
+        for key in embedded_def_dict.keys():
+            if key not in related_fields_names:
+                raise ParseError('Unknown embedded field %s' % key)
+
+
+        for model_field in related_fields:
+            field_name = model_field.name
+
+            del ret[field_name]
+            to_many = isinstance(model_field, models.fields.related.ManyToManyField)
+            related_model = _resolve_model(model_field.rel.to)
+
+            if field_name in embedded_def_dict:
+                nested_field = self.nested_model_serializer(related_model, embedded_def_dict[field_name])
+                nested_field.read_only = True
+                ret[field_name] = nested_field
+
+            ret[field_name + '_id'] = self.get_related_field(model_field, related_model, to_many)
+
+        return ret
+
 
     def get_embedded_def_dict(self):
         if self.embedded_def_dict:
@@ -43,100 +96,9 @@ class EmbeddedObjectsField(Field):
 
         return embedded_def_dict
 
-    def field_to_native(self, obj, embedded_param):
-        """
-        Given and object and a field name, returns the value that should be
-        serialized for that field.
-        """
-        if obj is None:
-            return self.empty
-
-        embedded_def_dict = self.get_embedded_def_dict()
-
-        if not embedded_def_dict:
-            return self.empty
-
-        _embedded = self.get_embedded(obj, embedded_def_dict)
-
-        if not _embedded:
-            return self.empty
-
-        return _embedded
-
-    def get_embedded(self, obj, embedded_def_dict):
-        _embedded = {}
-
-        for field_name, inner_dict in embedded_def_dict.iteritems():
-            try:
-                value = getattr(obj, field_name)
-                if isinstance(value, Model):
-                    _embedded[field_name] = self.serialize_model(value, inner_dict)
-                else:
-                    raise ParseError('Embedded field type must be Model, %s found' % str(type(value)))
-            except AttributeError:
-                raise ParseError('Unknown embedded field %s' % field_name)
-
-        return _embedded
-
-
-    def serialize_model(self, o, inner_dict):
+    def nested_model_serializer(self, related_model, inner_dict):
         class _DefaultSerializer(AutoModelSerializer):
-            _embedded = EmbeddedObjectsField(embedded_def_dict=inner_dict)
-
             class Meta:
-                model = type(o)
+                model = related_model
 
-        serializer = _DefaultSerializer(instance=o)
-        return serializer.data
-
-
-class AutoModelSerializer(ModelSerializer):
-
-    def get_fields(self):
-        the_fields = super(AutoModelSerializer, self).get_fields()
-        model = self.opts.model
-
-        try:
-            the_fields.update(model.extra_rest_fields)
-        except AttributeError:
-            pass
-
-        return the_fields
-
-    def get_default_fields(self):
-        ret = super(AutoModelSerializer, self).get_default_fields()
-
-        # Deal with forward relationships
-        cls = self.opts.model
-        opts = get_concrete_model(cls)._meta
-        nested = bool(self.opts.depth)
-
-        forward_rels = [field for field in opts.fields if field.serialize]
-        forward_rels += [field for field in opts.many_to_many if field.serialize]
-
-        for model_field in forward_rels:
-            has_through_model = False
-            field_name = model_field.name
-
-            if model_field.rel:
-                to_many = isinstance(model_field, models.fields.related.ManyToManyField)
-                related_model = _resolve_model(model_field.rel.to)
-
-                if to_many and not model_field.rel.through._meta.auto_created:
-                    has_through_model = True
-
-            if model_field.rel and nested:
-                field = self.get_nested_field(model_field, related_model, to_many)
-            elif model_field.rel:
-                field = self.get_related_field(model_field, related_model, to_many)
-                field_name += '_id'
-            else:
-                field = self.get_field(model_field)
-
-            if field:
-                if has_through_model:
-                    field.read_only = True
-
-                ret[field_name] = field
-
-        return ret
+        return _DefaultSerializer(embedded_def_dict=inner_dict)
