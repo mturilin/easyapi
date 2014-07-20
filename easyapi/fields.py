@@ -24,7 +24,11 @@ class EmbeddedObjectsField(Field):
             # meaning no context is provided
             return self.empty
 
-        embedded_fields = request.QUERY_PARAMS.get('_embedded','').split(',')
+        embedded_param = request.QUERY_PARAMS.get('_embedded', None)
+        if not embedded_param:
+            return self.empty
+
+        embedded_fields = embedded_param.split(',')
 
         _embedded = {}
 
