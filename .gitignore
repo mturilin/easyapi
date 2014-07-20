@@ -3,3 +3,4 @@
 /.idea/
 /.coverage
 /.idea/
+*.sqlite3-journal

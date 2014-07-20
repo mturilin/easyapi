@@ -1,8 +1,9 @@
 from django.db.models import Model
-
+from django.db import models
+from rest_framework.compat import get_concrete_model
 from rest_framework.exceptions import ParseError
 from rest_framework.fields import Field
-from rest_framework.serializers import ModelSerializer
+from rest_framework.serializers import ModelSerializer, _resolve_model
 
 from easyapi import BottomlessDict
 
@@ -50,7 +51,6 @@ class EmbeddedObjectsField(Field):
         if obj is None:
             return self.empty
 
-
         embedded_def_dict = self.get_embedded_def_dict()
 
         if not embedded_def_dict:
@@ -82,6 +82,7 @@ class EmbeddedObjectsField(Field):
     def serialize_model(self, o, inner_dict):
         class _DefaultSerializer(AutoModelSerializer):
             _embedded = EmbeddedObjectsField(embedded_def_dict=inner_dict)
+
             class Meta:
                 model = type(o)
 
@@ -90,7 +91,6 @@ class EmbeddedObjectsField(Field):
 
 
 class AutoModelSerializer(ModelSerializer):
-    _embedded = EmbeddedObjectsField()
 
     def get_fields(self):
         the_fields = super(AutoModelSerializer, self).get_fields()
@@ -102,3 +102,41 @@ class AutoModelSerializer(ModelSerializer):
             pass
 
         return the_fields
+
+    def get_default_fields(self):
+        ret = super(AutoModelSerializer, self).get_default_fields()
+
+        # Deal with forward relationships
+        cls = self.opts.model
+        opts = get_concrete_model(cls)._meta
+        nested = bool(self.opts.depth)
+
+        forward_rels = [field for field in opts.fields if field.serialize]
+        forward_rels += [field for field in opts.many_to_many if field.serialize]
+
+        for model_field in forward_rels:
+            has_through_model = False
+            field_name = model_field.name
+
+            if model_field.rel:
+                to_many = isinstance(model_field, models.fields.related.ManyToManyField)
+                related_model = _resolve_model(model_field.rel.to)
+
+                if to_many and not model_field.rel.through._meta.auto_created:
+                    has_through_model = True
+
+            if model_field.rel and nested:
+                field = self.get_nested_field(model_field, related_model, to_many)
+            elif model_field.rel:
+                field = self.get_related_field(model_field, related_model, to_many)
+                field_name += '_id'
+            else:
+                field = self.get_field(model_field)
+
+            if field:
+                if has_through_model:
+                    field.read_only = True
+
+                ret[field_name] = field
+
+        return ret

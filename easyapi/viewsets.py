@@ -42,19 +42,6 @@ class ManagerMethodWrapper(object):
         return Response(result)
 
 
-# class InstanceViewSetMetaClass(type):
-# def __new__(cls, name, bases, attrs):
-#
-#         filter_backend = attrs.get('filter_backend', None)
-#         model = attrs.get('model', None)
-#
-#         if filter_backend and model:
-#
-#
-#
-#         return super(InstanceViewSetMetaClass, cls).__new__(cls, name, bases, attrs)
-#
-
 class InstanceViewSet(ModelViewSet):
     model_serializer_class = AutoModelSerializer
 
