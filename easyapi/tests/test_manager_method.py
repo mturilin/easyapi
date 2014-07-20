@@ -10,7 +10,7 @@ import pytest
 
 
 @pytest.mark.django_db
-def test_manager_method(api_client):
+def test_manager_method(staff_api_client):
     # create 3 companies with known country and 6 with random
     country = 'Prussia'
     for i in range(3):
@@ -21,7 +21,7 @@ def test_manager_method(api_client):
 
 
 
-    response = api_client.get('/api/company-manager/select_by_country/', data={'country': country})
+    response = staff_api_client.get('/api/company-manager/select_by_country/', data={'country': country})
     assert response.status_code == 200
 
     response_data = json.loads(response.content)

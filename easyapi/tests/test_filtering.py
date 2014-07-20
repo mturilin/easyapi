@@ -10,7 +10,7 @@ __author__ = 'mikhailturilin'
 
 
 @pytest.mark.django_db
-def test_filtering_exact_str(api_client):
+def test_filtering_exact_str(staff_api_client):
     # create 3 companies with known country and 6 with random
     country = 'Prussia'
     for i in range(3):
@@ -21,7 +21,7 @@ def test_filtering_exact_str(api_client):
 
 
 
-    response = api_client.get('/api/company/', data={'@country': country})
+    response = staff_api_client.get('/api/company/', data={'@country': country})
     assert response.status_code == 200
 
     response_data = json.loads(response.content)
@@ -29,7 +29,7 @@ def test_filtering_exact_str(api_client):
     assert len(response_data) == 3
 
 @pytest.mark.django_db
-def test_filtering_foreign_key(api_client):
+def test_filtering_foreign_key(staff_api_client):
     # create 3 companies with known country and 6 with random
     company = CompanyFactory()
     for i in range(3):
@@ -39,7 +39,7 @@ def test_filtering_foreign_key(api_client):
         ProjectFactory()
 
 
-    response = api_client.get('/api/project/', data={'@company': company.pk})
+    response = staff_api_client.get('/api/project/', data={'@company': company.pk})
     assert response.status_code == 200
 
     response_data = json.loads(response.content)
@@ -48,7 +48,7 @@ def test_filtering_foreign_key(api_client):
 
 
 @pytest.mark.django_db
-def test_filtering_subselect(api_client):
+def test_filtering_subselect(staff_api_client):
     country = 'Prussia'
     company = CompanyFactory(country=country)
     for i in range(3):
@@ -58,7 +58,7 @@ def test_filtering_subselect(api_client):
         ProjectFactory()
 
 
-    response = api_client.get('/api/project/', data={'@company__country': country})
+    response = staff_api_client.get('/api/project/', data={'@company__country': country})
     assert response.status_code == 200
 
     response_data = json.loads(response.content)
@@ -68,7 +68,7 @@ def test_filtering_subselect(api_client):
 
 
 @pytest.mark.django_db
-def test_filtering_str_in(api_client):
+def test_filtering_str_in(staff_api_client):
     # create 3 companies with known country and 6 with random
     countries = ['Prussia','Jugoslavia']
     for country in countries:
@@ -80,7 +80,7 @@ def test_filtering_str_in(api_client):
 
 
 
-    response = api_client.get('/api/company/', data={'@country__in': ','.join(countries)})
+    response = staff_api_client.get('/api/company/', data={'@country__in': ','.join(countries)})
     assert response.status_code == 200
 
     response_data = json.loads(response.content)
@@ -90,13 +90,13 @@ def test_filtering_str_in(api_client):
 
 
 @pytest.mark.django_db
-def test_ordering(api_client):
+def test_ordering(staff_api_client):
     for i in range(19):
         CompanyFactory()
 
 
 
-    response = api_client.get('/api/company/', data={'order_by': '-pk'})
+    response = staff_api_client.get('/api/company/', data={'order_by': '-pk'})
     assert response.status_code == 200
 
     response_data = json.loads(response.content)

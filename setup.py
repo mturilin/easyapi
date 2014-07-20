@@ -10,7 +10,7 @@ def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 
-README = read('ROADMAP.md')
+README = read('README.md')
 
 
 class PyTest(TestCommand):
@@ -21,7 +21,6 @@ class PyTest(TestCommand):
 
     def run_tests(self):
         import pytest
-        os.environ['DJANGO_SETTINGS_MODULE'] = 'tests.settings'
         errno = pytest.main(self.test_args)
         sys.exit(errno)
 
@@ -33,7 +32,7 @@ setup(
     author_email='webmaster@hzdg.com',
     description='Real Python Enums for Django.',
     license='MIT',
-    url='https://github.com/hzdg/django-enumfields',
+    url='https://github.com/mturilin/easyapi',
     long_description=README,
     packages=find_packages(),
     zip_safe=False,

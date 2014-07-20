@@ -10,26 +10,26 @@ import pytest
 
 
 @pytest.mark.django_db
-def test_list_endpoint(api_client):
+def test_list_endpoint(staff_api_client):
     # create 3 companies
     for i in range(3):
         CompanyFactory()
 
-    response = api_client.get('/api/company/')
+    response = staff_api_client.get('/api/company/')
     response_data = json.loads(response.content)
 
     assert len(response_data) == 3
 
 
 @pytest.mark.django_db
-def test_instance_method_scalar_return(api_client):
+def test_instance_method_scalar_return(staff_api_client):
     # create 3 companies
     company = CompanyFactory()
 
     for i in range(3):
         ProjectFactory(company=company, budget=(i + 1) * 100)
 
-    response = api_client.get('/api/company/%d/total_budget/' % company.pk)
+    response = staff_api_client.get('/api/company/%d/total_budget/' % company.pk)
     print response.content
     response_data = json.loads(response.content)
 
@@ -38,14 +38,14 @@ def test_instance_method_scalar_return(api_client):
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("function", ["project_list", "project_qs"])
-def test_instance_method_list_qs(api_client, function):
+def test_instance_method_list_qs(staff_api_client, function):
     # create 3 companies
     company = CompanyFactory()
 
     for i in range(3):
         ProjectFactory(company=company, budget=(i + 1) * 100)
 
-    response = api_client.get('/api/company/%d/%s/' % (company.pk, function))
+    response = staff_api_client.get('/api/company/%d/%s/' % (company.pk, function))
     print response.content
     response_data = json.loads(response.content)
 
@@ -55,11 +55,11 @@ def test_instance_method_list_qs(api_client, function):
 
 
 @pytest.mark.django_db
-def test_instance_method_with_scalar_param(api_client):
+def test_instance_method_with_scalar_param(staff_api_client):
     # create 3 companies
     company = CompanyFactory()
 
-    response = api_client.post('/api/company/%d/multiply_by_100/' % company.pk, data={'number': 23})
+    response = staff_api_client.post('/api/company/%d/multiply_by_100/' % company.pk, data={'number': 23})
     print response.content
     response_data = json.loads(response.content)
 
@@ -75,11 +75,11 @@ def check_project_dict(project_dict):
 
 
 @pytest.mark.django_db
-def test_model_fields(api_client):
+def test_model_fields(staff_api_client):
     # create 3 companies
     projects = [ProjectFactory() for i in range(3)]
 
-    response = api_client.get('/api/project/%d/' % projects[0].pk)
+    response = staff_api_client.get('/api/project/%d/' % projects[0].pk)
     response_data = json.loads(response.content)
 
     project_dict = response_data
@@ -87,10 +87,10 @@ def test_model_fields(api_client):
 
 
 @pytest.mark.django_db
-def test_string_property(api_client):
+def test_string_property(staff_api_client):
     company = CompanyFactory()
 
-    response = api_client.get('/api/company/%d/' % company.pk)
+    response = staff_api_client.get('/api/company/%d/' % company.pk)
 
     print response.content
     response_data = json.loads(response.content)
@@ -100,12 +100,12 @@ def test_string_property(api_client):
 
 
 @pytest.mark.django_db
-def test_model_property(api_client):
+def test_model_property(staff_api_client):
     company = CompanyFactory()
     for i in range(3):
         ProjectFactory(company=company, budget=(i + 1) * 100)
 
-    response = api_client.get('/api/company/%d/' % company.pk)
+    response = staff_api_client.get('/api/company/%d/' % company.pk)
 
     print response.content
     response_data = json.loads(response.content)
@@ -115,10 +115,10 @@ def test_model_property(api_client):
 
 
 @pytest.mark.django_db
-def test_related_object_lookup(api_client):
+def test_related_object_lookup(staff_api_client):
     project = ProjectFactory()
 
-    response = api_client.get('/api/project/%d/' % project.pk)
+    response = staff_api_client.get('/api/project/%d/' % project.pk)
 
     print response.content
     response_data = json.loads(response.content)

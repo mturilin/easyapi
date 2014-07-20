@@ -1,8 +1,18 @@
+import itertools
+from collections import namedtuple
+
 from django.core.exceptions import ImproperlyConfigured
 from django.db.models import get_models, get_app
 from rest_framework.routers import DefaultRouter, flatten, Route, replace_methodname
-
 from easyapi.viewsets import InstanceViewSet
+from rest_framework import views
+from rest_framework.reverse import reverse
+from django.core.exceptions import ImproperlyConfigured
+from rest_framework import views
+from rest_framework.compat import patterns, url
+from rest_framework.response import Response
+from rest_framework.reverse import reverse
+from rest_framework.urlpatterns import format_suffix_patterns
 
 
 __author__ = 'mikhailturilin'
@@ -27,8 +37,9 @@ MANAGER_METHOD_ROUTE = Route(
 
 
 class EasyApiRouter(DefaultRouter):
-    def __init__(self):
-        super(EasyApiRouter, self).__init__()
+    def __init__(self, namespace=None, **kwargs):
+        super(EasyApiRouter, self).__init__(**kwargs)
+        self.namespace = namespace
 
 
     def known_actions(self):
@@ -91,19 +102,65 @@ class EasyApiRouter(DefaultRouter):
         return bound_methods
 
 
+    def get_api_root_view(self):
+        """
+        I ovveriden this function to include namespaces
+        """
+        api_root_dict = {}
+        list_name = self.routes[0].name
+        for prefix, viewset, basename in self.registry:
+            api_root_dict[prefix] = list_name.format(basename=basename)
+
+        outer_self = self
+
+        class APIRoot(views.APIView):
+            _ignore_model_permissions = True
+
+            def get(self, request, format=None):
+                ret = {}
+                for key, url_name in api_root_dict.items():
+                    if outer_self.namespace:
+                        url_name = "%s:%s" % (outer_self.namespace, url_name)
+                    ret[key] = reverse(url_name, request=request, format=format)
+                return Response(ret)
+
+        return APIRoot.as_view()
+
+    @property
+    def urls(self):
+        urls = super(EasyApiRouter, self).urls
+        if self.namespace:
+            return urls, self.namespace, self.namespace
+
+        return urls
+
+
 def ViewSetFactory(the_model):
     class _ModelViewSet(InstanceViewSet):
         model = the_model
+
     return _ModelViewSet
 
 
 class AutoAppRouter(EasyApiRouter):
-    def __init__(self, *apps):
-        super(AutoAppRouter, self).__init__()
+    def __init__(self, app_name, **kwargs):
+        super(AutoAppRouter, self).__init__(**kwargs)
 
-        for app_name in apps:
+        app = get_app(app_name)
+        for model in get_models(app):
+            viewset_class = ViewSetFactory(model)
+            self.register(model.__name__.lower(), viewset_class)
+
+
+class AutoAppListRouter(EasyApiRouter):
+    def __init__(self, *app_names, **kwargs):
+        super(AutoAppListRouter, self).__init__(**kwargs)
+
+        for app_name in app_names:
             app = get_app(app_name)
             for model in get_models(app):
                 viewset_class = ViewSetFactory(model)
                 prefix = "%s/%s" % (app_name, model.__name__.lower())
                 self.register(prefix, viewset_class)
+
+

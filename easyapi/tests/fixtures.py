@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 import pytest
 from rest_framework.request import Request
 from rest_framework.test import APIClient, APIRequestFactory
@@ -18,6 +19,36 @@ class RestAPIRequestFactory(APIRequestFactory):
 @pytest.fixture
 def api_client():
     return APIClient()
+
+@pytest.fixture
+@pytest.mark.django_db
+def user_api_client():
+    credentials = dict(username="aaa", password='bbb')
+    user = get_user_model().objects.create_user(**credentials)
+    client = APIClient()
+    client.login(**credentials)
+    return client
+
+
+@pytest.fixture
+@pytest.mark.django_db
+def staff_api_client():
+    credentials = dict(username="ccc", password='ddd')
+    user = get_user_model().objects._create_user(is_staff=True, email=None, is_superuser=False, **credentials)
+    client = APIClient()
+    client.login(**credentials)
+    return client
+
+
+
+@pytest.fixture
+@pytest.mark.django_db
+def admin_api_client():
+    credentials = dict(username="eee", password='fff')
+    user = get_user_model().objects.create_superuser(**credentials)
+    client = APIClient()
+    client.login(**credentials)
+    return client
 
 
 @pytest.fixture

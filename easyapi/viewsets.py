@@ -1,4 +1,5 @@
 import inspect
+from rest_framework.permissions import IsAuthenticated
 
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
@@ -6,6 +7,7 @@ from rest_framework.viewsets import ModelViewSet
 from easyapi.encoder import ModelJSONRenderer
 from easyapi.filters import QuerySetFilterBackend, FILTER_ALL
 from easyapi.params import extract_rest_params
+from easyapi.permissions import IsStaff
 
 
 __author__ = 'mikhailturilin'
@@ -55,6 +57,8 @@ class ManagerMethodWrapper(object):
 
 class InstanceViewSet(ModelViewSet):
     # __metaclass__ = InstanceViewSetMetaClass
+
+    permission_classes = (IsStaff,)
 
     renderer_classes = (ModelJSONRenderer, )
     filter_backend = QuerySetFilterBackend
