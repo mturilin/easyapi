@@ -1,19 +1,12 @@
-import itertools
-from collections import namedtuple
-
-from django.core.exceptions import ImproperlyConfigured
 from django.db.models import get_models, get_app
 from rest_framework.routers import DefaultRouter, flatten, Route, replace_methodname
-from easyapi.permissions import IsStaff
-from easyapi.viewsets import InstanceViewSet
-from rest_framework import views
-from rest_framework.reverse import reverse
 from django.core.exceptions import ImproperlyConfigured
 from rest_framework import views
-from rest_framework.compat import patterns, url
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
-from rest_framework.urlpatterns import format_suffix_patterns
+
+from easyapi.permissions import IsStaff
+from easyapi.viewsets import InstanceViewSet
 
 
 __author__ = 'mikhailturilin'

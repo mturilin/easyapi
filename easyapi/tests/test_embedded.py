@@ -57,3 +57,29 @@ def test_embedded_in_embedded(staff_api_client):
     category_dict = company_dict['_embedded']['category']
     assert category_dict['id'] == company.category.id
 
+
+
+@pytest.mark.django_db
+def test_embedded_for_list(staff_api_client):
+    company = CompanyFactory()
+
+    projects = [ProjectFactory(company=company) for i in range(3)]
+
+    response = staff_api_client.get('/api/project/', data={'_embedded': 'company__category'})
+    assert response.status_code == HTTP_200_OK
+
+    response_data = json.loads(response.content)
+
+    project_dict = response_data[0]
+
+    assert '_embedded' in project_dict
+    assert 'company' in project_dict['_embedded']
+
+    company_dict = project_dict['_embedded']['company']
+    assert company_dict['id'] == company.id
+
+    assert '_embedded' in company_dict
+    assert 'category' in company_dict['_embedded']
+    category_dict = company_dict['_embedded']['category']
+    assert category_dict['id'] == company.category.id
+
