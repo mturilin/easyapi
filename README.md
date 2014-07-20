@@ -85,7 +85,7 @@ By default foreign keys are exposed as ids. This is the best default strategy, h
             }]
         },
 
-###Embed foreign key objects into the model’s JSON
+###Embed foreign key objects into the model’s JSON (DONE)
 
 Sometimes we need to get the embedded object inside the model. For example, when we get userprofile we want use as well. There will be a parameter “_embedded” that accepts a list of embedded objects. For example:
 

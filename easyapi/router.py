@@ -4,6 +4,7 @@ from collections import namedtuple
 from django.core.exceptions import ImproperlyConfigured
 from django.db.models import get_models, get_app
 from rest_framework.routers import DefaultRouter, flatten, Route, replace_methodname
+from easyapi.permissions import IsStaff
 from easyapi.viewsets import InstanceViewSet
 from rest_framework import views
 from rest_framework.reverse import reverse
@@ -37,6 +38,9 @@ MANAGER_METHOD_ROUTE = Route(
 
 
 class EasyApiRouter(DefaultRouter):
+    permission_classes = (IsStaff,)
+
+
     def __init__(self, namespace=None, **kwargs):
         super(EasyApiRouter, self).__init__(**kwargs)
         self.namespace = namespace
@@ -115,6 +119,7 @@ class EasyApiRouter(DefaultRouter):
 
         class APIRoot(views.APIView):
             _ignore_model_permissions = True
+            permission_classes = outer_self.permission_classes
 
             def get(self, request, format=None):
                 ret = {}
