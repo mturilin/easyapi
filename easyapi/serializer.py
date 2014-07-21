@@ -1,8 +1,6 @@
-from django.db.models import Model
 from django.db import models
 from rest_framework.compat import get_concrete_model
 from rest_framework.exceptions import ParseError
-from rest_framework.fields import Field
 from rest_framework.serializers import ModelSerializer, _resolve_model
 
 from easyapi import BottomlessDict
@@ -11,9 +9,7 @@ from easyapi import BottomlessDict
 __author__ = 'mikhailturilin'
 
 
-
 class AutoModelSerializer(ModelSerializer):
-
     def __init__(self, instance=None, data=None, files=None, context=None, partial=False, many=None,
                  allow_add_remove=False, embedded_def_dict=None, **kwargs):
         self.embedded_def_dict = embedded_def_dict
@@ -47,13 +43,18 @@ class AutoModelSerializer(ModelSerializer):
 
         related_fields = [field for field in opts.fields if field.serialize if field.rel]
 
+        reverse_rels = opts.get_all_related_objects() + opts.get_all_related_many_to_many_objects()
+
+
         # checking that there are no unknown embedded fields
-        related_fields_names = set([field.name for field in related_fields])
+        related_fields_names = [field.name for field in related_fields]
+        reverse_rel_names = [relation.get_accessor_name() for relation in reverse_rels]
+        possible_embedded_names = set(related_fields_names + reverse_rel_names)
         for key in embedded_def_dict.keys():
-            if key not in related_fields_names:
+            if key not in possible_embedded_names:
                 raise ParseError('Unknown embedded field %s' % key)
 
-
+        # adding embedded fields for the foreign keys
         for model_field in related_fields:
             field_name = model_field.name
 
@@ -67,6 +68,34 @@ class AutoModelSerializer(ModelSerializer):
                 ret[field_name] = nested_field
 
             ret[field_name + '_id'] = self.get_related_field(model_field, related_model, to_many)
+
+        # adding embedded fields for the reverse relations
+        for relation in reverse_rels:
+            accessor_name = relation.get_accessor_name()
+            if accessor_name not in embedded_def_dict:
+                continue
+
+            if accessor_name in ret:
+                del ret[accessor_name]
+
+            related_model = relation.model
+            to_many = relation.field.rel.multiple
+            has_through_model = False
+            is_m2m = isinstance(relation.field,
+                                models.fields.related.ManyToManyField)
+
+            if (is_m2m and
+                    hasattr(relation.field.rel, 'through') and
+                    not relation.field.rel.through._meta.auto_created):
+                has_through_model = True
+
+            field = self.nested_model_serializer(related_model, embedded_def_dict[accessor_name], to_many)
+
+            if field:
+                if has_through_model:
+                    field.read_only = True
+
+                ret[accessor_name] = field
 
         return ret
 
@@ -96,9 +125,9 @@ class AutoModelSerializer(ModelSerializer):
 
         return embedded_def_dict
 
-    def nested_model_serializer(self, related_model, inner_dict):
+    def nested_model_serializer(self, related_model, inner_dict, to_many=False):
         class _DefaultSerializer(AutoModelSerializer):
             class Meta:
                 model = related_model
 
-        return _DefaultSerializer(embedded_def_dict=inner_dict)
+        return _DefaultSerializer(embedded_def_dict=inner_dict, many=to_many)

@@ -56,7 +56,6 @@ def test_embedded_in_embedded(staff_api_client):
     assert category_dict['id'] == company.category.id
 
 
-
 @pytest.mark.django_db
 def test_embedded_for_list(staff_api_client):
     company = CompanyFactory()
@@ -78,6 +77,23 @@ def test_embedded_for_list(staff_api_client):
     assert 'category' in company_dict
     category_dict = company_dict['category']
     assert category_dict['id'] == company.category.id
+
+
+@pytest.mark.django_db
+def test_embedded_related(staff_api_client):
+    company = CompanyFactory()
+
+    projects = [ProjectFactory(company=company) for i in range(3)]
+
+    response = staff_api_client.get('/api/company/%d/' % company.id, data={'_embedded': 'projects'})
+    assert response.status_code == HTTP_200_OK
+
+    response_data = json.loads(response.content)
+
+    assert 'projects' in response_data
+
+    assert len(response_data['projects']) == 3
+
 
 @pytest.mark.django_db
 def test_foreign_keys_end_with_id(staff_api_client):

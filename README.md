@@ -105,7 +105,7 @@ Result:
         }
     }
 
-Stretch goal: embed inside embed.
+Stretch goal 1: embed inside embed (DONE).
 
 Request:
 
@@ -121,6 +121,26 @@ Result:
                 “street”: “1, Elm St.”
                 ...
             }
+    }
+
+Stretch goal 2: embed reverse relationships (DONE).
+
+Request:
+
+    GET /company/1/?_embed=profiles
+
+Result:
+
+    {
+        “id” : 12,
+        “profiles” : [
+            {
+                “id”: 1,
+            }
+            {
+                “id”: 3,
+            }
+        ]
     }
 
 ###Reverse relationships as sub-URL
