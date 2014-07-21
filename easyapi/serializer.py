@@ -67,7 +67,7 @@ class AutoModelSerializer(ModelSerializer):
                 nested_field.read_only = True
                 ret[field_name] = nested_field
 
-            ret[field_name + '_id'] = self.get_related_field(model_field, related_model, to_many)
+            ret[field_name + '_id'] = self.get_related_field_with_source(model_field, related_model, to_many, source=field_name)
 
         # adding embedded fields for the reverse relations
         for relation in reverse_rels:
@@ -131,3 +131,8 @@ class AutoModelSerializer(ModelSerializer):
                 model = related_model
 
         return _DefaultSerializer(embedded_def_dict=inner_dict, many=to_many)
+
+    def get_related_field_with_source(self, model_field, related_model, to_many, source):
+        field = self.get_related_field(model_field, related_model, to_many)
+        field.source = source
+        return field
