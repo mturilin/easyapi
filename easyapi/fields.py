@@ -1,7 +1,5 @@
-from django.db.models import Model
-from rest_framework.exceptions import ParseError
 from rest_framework.fields import Field
-from easyapi import serializer
+
 
 __author__ = 'mikhailturilin'
 
@@ -11,6 +9,14 @@ class PrimaryKeyReadOnlyField(Field):
         return value and value.pk
 
 
+class MetaField(Field):
+    def __init__(self, label=None, help_text=None):
+        super(MetaField, self).__init__('*', label, help_text)
 
+    def to_native(self, obj):
+        return {
+            'app': type(obj)._meta.app_label,
+            'model': type(obj)._meta.model_name
+        }
 
 
