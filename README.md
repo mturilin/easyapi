@@ -114,13 +114,15 @@ Request:
 Result:
 
     {
-        “company_id” : 12,
-        “company” : {
-            “id”: 1,
+        “_embedded” : {
+            “company” : {
+                “id”: 1,
+            }
             “address” : {
                 “street”: “1, Elm St.”
                 ...
             }
+        }
     }
 
 Stretch goal 2: embed reverse relationships (DONE).
@@ -133,14 +135,16 @@ Result:
 
     {
         “id” : 12,
-        “profiles” : [
-            {
-                “id”: 1,
-            }
-            {
-                “id”: 3,
-            }
-        ]
+        “_embedded” : {
+            “profiles” : [
+                {
+                    “id”: 1,
+                }
+                {
+                    “id”: 3,
+                }
+            ]
+        }
     }
 
 ###Reverse relationships as sub-URL
