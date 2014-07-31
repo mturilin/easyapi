@@ -61,7 +61,7 @@ companies form Germany with request:
 
     GET /api/company/?@country__name__icontains=Germany
 
-Note: to discern filter criterias from other query string params they start with @ sign.
+Note: to discern filter criteria from other query string params they start with @ sign.
 
 
 ###Expose model’s foreign keys as Hypermedia links
