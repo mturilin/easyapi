@@ -113,6 +113,9 @@ def test_model_property(staff_api_client):
     assert 'first_project' in response_data
     assert isinstance(response_data['first_project'], int)
 
+    assert 'title' in response_data
+    assert isinstance(response_data['title'], basestring)
+
 
 @pytest.mark.django_db
 def test_related_object_lookup(staff_api_client):

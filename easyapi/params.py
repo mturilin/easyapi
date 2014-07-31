@@ -63,4 +63,11 @@ def list_param(list_str):
     return list_str.split(',')
 
 
+def primary_key(model):
+    def inner(id):
+        return model.objects.get(id=id)
+    return inner
+
+
+
 

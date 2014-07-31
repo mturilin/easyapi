@@ -1,12 +1,17 @@
-from django.db.models import ManyToManyField
+from datetime import date, datetime
+import inspect
 
+from django.db.models import ManyToManyField
 from rest_framework.compat import get_concrete_model
+
 from rest_framework.exceptions import ParseError
 from rest_framework.serializers import ModelSerializer, _resolve_model
 from rest_framework.fields import Field
+from rest_framework import fields as rest_fields
 
 from easyapi import BottomlessDict
-from easyapi.fields import MetaField
+from easyapi.fields import MetaField, PrimaryKeyReadOnlyField
+from easyapi.params import json_param, primary_key
 
 
 __author__ = 'mikhailturilin'
@@ -87,13 +92,12 @@ class EmbeddedObjectsField(Field):
 
             if to_many:
                 result[relation_name] = self.serialize_queryset(related_model,
-                                                         getattr(obj, relation_name).all(),
-                                                         embedded_def_dict[relation_name])
+                                                                getattr(obj, relation_name).all(),
+                                                                embedded_def_dict[relation_name])
             else:
                 result[relation_name] = self.serialize_model(related_model,
-                                                          getattr(obj, relation_name),
-                                                          embedded_def_dict[relation_name])
-
+                                                             getattr(obj, relation_name),
+                                                             embedded_def_dict[relation_name])
 
         return result
 
@@ -111,6 +115,16 @@ class EmbeddedObjectsField(Field):
     def serialize_queryset(self, related_model, qs, inner_dict):
         new_serializer = self.nested_model_serializer(related_model, inner_dict)
         return [new_serializer.to_native(inst) for inst in qs]
+
+
+def class_rest_properties(cls):
+    property_items = inspect.getmembers(cls, predicate=inspect.isdatadescriptor)
+
+    return [(p_name, p_val) for p_name, p_val in property_items if hasattr(p_val, 'field_class')]
+
+
+class JsonField(rest_fields.Field):
+    pass
 
 
 class AutoModelSerializer(ModelSerializer):
@@ -160,6 +174,10 @@ class AutoModelSerializer(ModelSerializer):
         # adding links field
         ret['_meta'] = MetaField()
         ret['_embedded'] = EmbeddedObjectsField(cls, embedded_def_dict=self.embedded_def_dict)
+
+        for p_name, p_val in class_rest_properties(cls):
+            field_name = getattr(p_val, 'name', p_name) or p_name # we use property name as field name by default
+            ret[field_name] = p_val.field_class(source=p_name)
 
         return ret
 

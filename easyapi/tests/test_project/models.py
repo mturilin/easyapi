@@ -1,7 +1,7 @@
 from django.db import models
-from rest_framework.fields import Field
+from rest_framework import fields as rest_fields
 
-from easyapi.decorators import rest_method
+from easyapi.decorators import rest_method, rest_property
 from easyapi.fields import PrimaryKeyReadOnlyField
 
 
@@ -23,10 +23,10 @@ class Company(models.Model):
     category = models.ForeignKey(Category)
     country = models.CharField(max_length=100)
 
-    extra_rest_fields = {
-        'first_project': PrimaryKeyReadOnlyField(),
-        'title': Field(),
-    }
+    # extra_rest_fields = {
+    #     # 'first_project': PrimaryKeyReadOnlyField(),
+    #     # 'title': Field(),
+    # }
 
     objects = CompanyManager()
 
@@ -46,11 +46,11 @@ class Company(models.Model):
     def multiply_by_100(self, number):
         return number * 100
 
-    @property
+    @rest_property(rest_fields.Field)
     def title(self):
         return self.name.title()
 
-    @property
+    @rest_property(PrimaryKeyReadOnlyField)
     def first_project(self):
         return self.projects.all().first()
 
@@ -63,7 +63,7 @@ class Project(models.Model):
     start_date = models.DateField()
 
     extra_rest_fields = {
-        'company_name': Field(source='company.name'),
+        'company_name': rest_fields.Field(source='company.name'),
     }
 
 
