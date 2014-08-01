@@ -29,7 +29,7 @@ def test_create_with_foreign_keys_end_with_id(staff_api_client):
     company = CompanyFactory()
 
     response = staff_api_client.post('/api/project/', {'name': 'aaaa', 'company_id': company.id,
-                                                       'start_date': '2014-05-19'})
+                                                       'start_date': '2014-05-19', 'scope': "Company"})
     assert response.status_code == HTTP_201_CREATED
     response_data = json.loads(response.content)
 

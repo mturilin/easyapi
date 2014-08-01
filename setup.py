@@ -50,6 +50,8 @@ setup(
         'python-dateutil',
         'isodate',
         'six',
+        'enum34',
+        'django-enumfields',
     ],
     tests_require=[
         'pytest',

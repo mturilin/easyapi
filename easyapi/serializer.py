@@ -2,6 +2,7 @@ from datetime import date, datetime
 import inspect
 
 from django.db.models import ManyToManyField
+from enumfields.fields import EnumField, EnumFieldMixin
 from rest_framework.compat import get_concrete_model
 
 from rest_framework.exceptions import ParseError
@@ -10,7 +11,7 @@ from rest_framework.fields import Field
 from rest_framework import fields as rest_fields
 
 from easyapi import BottomlessDict
-from easyapi.fields import MetaField, PrimaryKeyReadOnlyField
+from easyapi.fields import MetaField, PrimaryKeyReadOnlyField, RestEnumField
 from easyapi.params import json_param, primary_key
 
 
@@ -128,6 +129,7 @@ class JsonField(rest_fields.Field):
 
 
 class AutoModelSerializer(ModelSerializer):
+
     def __init__(self, instance=None, data=None, files=None, context=None, partial=False, many=None,
                  allow_add_remove=False, embedded_def_dict=None, **kwargs):
         self.embedded_def_dict = embedded_def_dict
@@ -186,3 +188,10 @@ class AutoModelSerializer(ModelSerializer):
         field = self.get_related_field(model_field, related_model, to_many)
         field.source = source
         return field
+
+    def get_field(self, model_field):
+        if isinstance(model_field, EnumFieldMixin):
+            return RestEnumField(model_field.enum)
+
+        return super(AutoModelSerializer, self).get_field(model_field)
+

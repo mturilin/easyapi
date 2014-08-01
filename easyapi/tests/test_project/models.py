@@ -1,11 +1,25 @@
 from django.db import models
+from enum import Enum
+from enumfields import EnumField
 from rest_framework import fields as rest_fields
+from rest_framework.fields import ModelField
 
 from easyapi.decorators import rest_method, rest_property
-from easyapi.fields import PrimaryKeyReadOnlyField
+from easyapi.fields import PrimaryKeyReadOnlyField, RestEnumField
 
 
 __author__ = 'mikhailturilin'
+
+
+class CompanyType(Enum):
+    PUBLIC = 1
+    PRIVATE = 2
+
+
+class ProjectScope(Enum):
+    Client = "Client"
+    Department = "Department"
+    Company = "Company"
 
 
 class CompanyManager(models.Manager):
@@ -22,6 +36,7 @@ class Company(models.Model):
     name = models.TextField()
     category = models.ForeignKey(Category)
     country = models.CharField(max_length=100)
+    company_type = EnumField(CompanyType)
 
     # extra_rest_fields = {
     #     # 'first_project': PrimaryKeyReadOnlyField(),
@@ -54,6 +69,13 @@ class Company(models.Model):
     def first_project(self):
         return self.projects.all().first()
 
+    @rest_property(RestEnumField)
+    def first_project_scope(self):
+        try:
+            return self.first_project.scope
+        except AttributeError:
+            return None
+
 
 class Project(models.Model):
     company = models.ForeignKey(Company, related_name="projects")
@@ -61,6 +83,7 @@ class Project(models.Model):
     budget = models.DecimalField(decimal_places=2, max_digits=20, default=0)
     is_open = models.BooleanField(default=True)
     start_date = models.DateField()
+    scope = EnumField(ProjectScope)
 
     extra_rest_fields = {
         'company_name': rest_fields.Field(source='company.name'),
