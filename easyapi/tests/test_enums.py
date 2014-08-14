@@ -33,10 +33,10 @@ def test_enum_root(staff_api_client):
 
     response_data = json.loads(response.content)
 
-    assert 'companytype' in response_data
+    assert 'CompanyType' in response_data
     assert response_data['CompanyType'].endswith('/enums/companytype/')
 
-    assert 'projectscope' in response_data
+    assert 'ProjectScope' in response_data
     assert response_data['ProjectScope'].endswith('/enums/projectscope/')
 
 @pytest.mark.django_db

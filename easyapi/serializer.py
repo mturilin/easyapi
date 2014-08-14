@@ -128,6 +128,13 @@ class JsonField(rest_fields.Field):
     pass
 
 
+def serializer_for_model(model_class):
+    class _serializer(AutoModelSerializer):
+        class Meta:
+            model = model_class
+    return _serializer
+
+
 class AutoModelSerializer(ModelSerializer):
 
     def __init__(self, instance=None, data=None, files=None, context=None, partial=False, many=None,

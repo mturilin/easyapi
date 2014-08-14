@@ -26,5 +26,6 @@ urlpatterns = patterns(
     url(r'^auto-list/', include(auto_list_router.urls)),
     url(r'^auto-api/', include(auto_router.urls)),
     url(r'^custom-api/hello-func/', 'say_hello'),
+    url(r'^custom-api/company-paginator/', 'company_paginator'),
     url(r'^custom-api/hello-view/', WelcomeView.as_view()),
 )

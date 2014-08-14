@@ -86,6 +86,12 @@ STATIC_URL = '/static/'
 
 REST_FRAMEWORK = {
     # 'DEFAULT_MODEL_SERIALIZER_CLASS': 'easyapi.serializer.AutoModelSerializer',
+
+    # 'DEFAULT_PAGINATION_SERIALIZER_CLASS': 'easyapi.paginator.EasyPaginationSerializer',
+    # 'PAGINATE_BY': 10,  # Default to 10
+    # 'PAGINATE_BY_PARAM': 'page_size',  # Allow client to override, using `?page_size=xxx`.
+    # 'MAX_PAGINATE_BY': 100,  # Maximum limit allowed when using `?page_size=xxx`.
+
     'DEFAULT_AUTHENTICATION_CLASSES': (
         # 'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.SessionAuthentication',
