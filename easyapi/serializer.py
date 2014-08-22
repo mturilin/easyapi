@@ -1,5 +1,6 @@
 from datetime import date, datetime
 import inspect
+from django.core.exceptions import ObjectDoesNotExist
 
 from django.db.models import ManyToManyField
 from enumfields.fields import EnumField, EnumFieldMixin
@@ -96,8 +97,13 @@ class EmbeddedObjectsField(Field):
                                                                 getattr(obj, relation_name).all(),
                                                                 embedded_def_dict[relation_name])
             else:
+                try:
+                    instance = getattr(obj, relation_name)
+                except ObjectDoesNotExist:
+                    instance = None
+
                 result[relation_name] = self.serialize_model(related_model,
-                                                             getattr(obj, relation_name),
+                                                             instance,
                                                              embedded_def_dict[relation_name])
 
         return result
@@ -110,6 +116,8 @@ class EmbeddedObjectsField(Field):
         return _DefaultSerializer(embedded_def_dict=inner_dict, many=to_many)
 
     def serialize_model(self, related_model, instance, inner_dict, to_many=False):
+        if not instance:
+            return None
         new_serializer = self.nested_model_serializer(related_model, inner_dict, to_many)
         return new_serializer.to_native(instance)
 

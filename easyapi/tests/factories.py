@@ -1,4 +1,4 @@
-from easyapi.tests.test_project.models import Project, Company, Category, CompanyType, ProjectScope
+from easyapi.tests.test_project.models import Project, Company, Category, CompanyType, ProjectScope, Address
 from datetime import timedelta, date
 from django.utils import timezone
 
@@ -16,6 +16,12 @@ class CategoryFactory(factory_django.DjangoModelFactory):
     name = fuzzy.FuzzyText()
 
 
+class AddressFactory(factory_django.DjangoModelFactory):
+    class Meta:
+        model = Address
+
+    street = fuzzy.FuzzyText()
+
 class CompanyFactory(factory_django.DjangoModelFactory):
     class Meta:
         model = Company
@@ -24,6 +30,7 @@ class CompanyFactory(factory_django.DjangoModelFactory):
     name = fuzzy.FuzzyText()
     country = fuzzy.FuzzyText(length=20)
     company_type = fuzzy.FuzzyChoice(CompanyType)
+    address = None
 
 
 SIX_MONTH_EARLIER = date.today() - timedelta(days=int(30.5*6))

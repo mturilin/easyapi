@@ -2,7 +2,6 @@ from django.db import models
 from enum import Enum
 from enumfields import EnumField
 from rest_framework import fields as rest_fields
-from rest_framework.fields import ModelField
 
 from easyapi.decorators import rest_method, rest_property
 from easyapi.fields import PrimaryKeyReadOnlyField, RestEnumField
@@ -23,13 +22,17 @@ class ProjectScope(Enum):
 
 
 class CompanyManager(models.Manager):
-
     @rest_method(arg_types={'country': str})
     def select_by_country(self, country):
         return self.filter(country=country)
 
+
 class Category(models.Model):
     name = models.TextField()
+
+
+class Address(models.Model):
+    street = models.TextField()
 
 
 class Company(models.Model):
@@ -38,8 +41,10 @@ class Company(models.Model):
     country = models.CharField(max_length=100)
     company_type = EnumField(CompanyType)
 
+    address= models.OneToOneField(Address, null=True, blank=True, related_name="company")
+
     # extra_rest_fields = {
-    #     # 'first_project': PrimaryKeyReadOnlyField(),
+    # # 'first_project': PrimaryKeyReadOnlyField(),
     #     # 'title': Field(),
     # }
 
