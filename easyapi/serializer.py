@@ -1,22 +1,52 @@
-from datetime import date, datetime
 import inspect
+
 from django.core.exceptions import ObjectDoesNotExist
-
+from django.db import models
 from django.db.models import ManyToManyField
-from enumfields.fields import EnumField, EnumFieldMixin
+from enumfields.fields import EnumFieldMixin
 from rest_framework.compat import get_concrete_model
-
 from rest_framework.exceptions import ParseError
 from rest_framework.serializers import ModelSerializer, _resolve_model
 from rest_framework.fields import Field
 from rest_framework import fields as rest_fields
 
 from easyapi import BottomlessDict
-from easyapi.fields import MetaField, PrimaryKeyReadOnlyField, RestEnumField
-from easyapi.params import json_param, primary_key
+from easyapi.fields import MetaField, RestEnumField
 
 
 __author__ = 'mikhailturilin'
+
+
+def nested_model_serializer(related_model, inner_dict, to_many=False):
+    class _DefaultSerializer(AutoModelSerializer):
+        class Meta:
+            model = related_model
+
+    return _DefaultSerializer(embedded_def_dict=inner_dict, many=to_many)
+
+
+def serialize_model(related_model, instance, inner_dict, to_many=False):
+    if not instance:
+        return None
+    new_serializer = nested_model_serializer(related_model, inner_dict, to_many)
+    return new_serializer.to_native(instance)
+
+
+def serialize_queryset(related_model, qs, inner_dict):
+    new_serializer = nested_model_serializer(related_model, inner_dict)
+    return [new_serializer.to_native(inst) for inst in qs]
+
+
+def convert_list(sequence, embedded_def_dict):
+    return [convert_one(obj, embedded_def_dict) for obj in sequence]
+
+
+def convert_one(obj, embedded_def_dict):
+    if not embedded_def_dict:
+        return obj
+
+    if isinstance(obj, models.Model):
+        return serialize_model(type(obj), obj, embedded_def_dict)
 
 
 class EmbeddedObjectsField(Field):
@@ -31,10 +61,21 @@ class EmbeddedObjectsField(Field):
 
         self.related_fields_names = [field.name for field in self.related_fields]
         self.reverse_rel_names = [relation.get_accessor_name() for relation in self.reverse_rels]
-        self.possible_embedded_names = set(self.related_fields_names + self.reverse_rel_names)
+        self.possible_embedded_names = set(
+            self.related_fields_names + self.reverse_rel_names + self.embedded_function_names())
 
 
     def get_embedded_def_dict(self):
+        def update_embedded_dict(embedded_dict, param_string):
+            if param_string:
+                embedded_params = param_string.split(',')
+                for embedded_param in embedded_params:
+                    components = embedded_param.split('__')
+                    cur_dict = embedded_dict
+                    for c in components:
+                        cur_dict = cur_dict[c]
+
+
         if self.embedded_def_dict:
             return self.embedded_def_dict
 
@@ -44,18 +85,11 @@ class EmbeddedObjectsField(Field):
             # meaning no context is provided
             return None
 
-        embedded_param = request.QUERY_PARAMS.get('_embedded', None)
-
-        if not embedded_param:
-            return None
-
         embedded_def_dict = BottomlessDict()
-        embedded_params = embedded_param.split(',')
-        for embedded_param in embedded_params:
-            components = embedded_param.split('__')
-            cur_dict = embedded_def_dict
-            for c in components:
-                cur_dict = cur_dict[c]
+
+        update_embedded_dict(embedded_def_dict, request.QUERY_PARAMS.get('_embedded', None))
+        update_embedded_dict(embedded_def_dict, getattr(self.model, 'rest_embedded', None))
+
 
         # checking that there are no unknown embedded fields
         for key in embedded_def_dict.keys():
@@ -78,9 +112,10 @@ class EmbeddedObjectsField(Field):
             related_model = _resolve_model(model_field.rel.to)
 
             if field_name in embedded_def_dict:
-                result[field_name] = self.serialize_model(related_model,
-                                                          getattr(obj, field_name),
-                                                          embedded_def_dict[field_name])
+                result[field_name] = serialize_model(related_model,
+                                                     getattr(obj, field_name),
+                                                     embedded_def_dict[field_name])
+
 
         # for the reverse relations
         for relation in self.reverse_rels:
@@ -93,37 +128,39 @@ class EmbeddedObjectsField(Field):
             to_many = relation.field.rel.multiple
 
             if to_many:
-                result[relation_name] = self.serialize_queryset(related_model,
-                                                                getattr(obj, relation_name).all(),
-                                                                embedded_def_dict[relation_name])
+                result[relation_name] = serialize_queryset(related_model,
+                                                           getattr(obj, relation_name).all(),
+                                                           embedded_def_dict[relation_name])
             else:
                 try:
                     instance = getattr(obj, relation_name)
                 except ObjectDoesNotExist:
                     instance = None
 
-                result[relation_name] = self.serialize_model(related_model,
-                                                             instance,
-                                                             embedded_def_dict[relation_name])
+                result[relation_name] = serialize_model(related_model,
+                                                        instance,
+                                                        embedded_def_dict[relation_name])
+
+        # for functional relations
+        for method_name, method in self.embedded_functions():
+            name = getattr(method, 'rest_embeddable_function', None)
+            if name and name in embedded_def_dict:
+                many = getattr(method, 'rest_many', False)
+                if many:
+                    result[name] = convert_list(sequence=method(obj), embedded_def_dict=embedded_def_dict[name])
+                else:
+                    result[name] = convert_one(obj=method(obj), embedded_def_dict=embedded_def_dict[name])
 
         return result
 
-    def nested_model_serializer(self, related_model, inner_dict, to_many=False):
-        class _DefaultSerializer(AutoModelSerializer):
-            class Meta:
-                model = related_model
 
-        return _DefaultSerializer(embedded_def_dict=inner_dict, many=to_many)
+    def embedded_function_names(self):
+        return [method_name for method_name, method in self.embedded_functions()]
 
-    def serialize_model(self, related_model, instance, inner_dict, to_many=False):
-        if not instance:
-            return None
-        new_serializer = self.nested_model_serializer(related_model, inner_dict, to_many)
-        return new_serializer.to_native(instance)
 
-    def serialize_queryset(self, related_model, qs, inner_dict):
-        new_serializer = self.nested_model_serializer(related_model, inner_dict)
-        return [new_serializer.to_native(inst) for inst in qs]
+    def embedded_functions(self):
+        return inspect.getmembers(self.model,
+                                  predicate=lambda x: inspect.ismethod(x) and hasattr(x, 'rest_embeddable_function'))
 
 
 def class_rest_properties(cls):
@@ -140,11 +177,11 @@ def serializer_for_model(model_class):
     class _serializer(AutoModelSerializer):
         class Meta:
             model = model_class
+
     return _serializer
 
 
 class AutoModelSerializer(ModelSerializer):
-
     def __init__(self, instance=None, data=None, files=None, context=None, partial=False, many=None,
                  allow_add_remove=False, embedded_def_dict=None, **kwargs):
         self.embedded_def_dict = embedded_def_dict
@@ -193,7 +230,7 @@ class AutoModelSerializer(ModelSerializer):
         ret['_embedded'] = EmbeddedObjectsField(cls, embedded_def_dict=self.embedded_def_dict)
 
         for p_name, p_val in class_rest_properties(cls):
-            field_name = getattr(p_val, 'name', p_name) or p_name # we use property name as field name by default
+            field_name = getattr(p_val, 'name', p_name) or p_name  # we use property name as field name by default
             ret[field_name] = p_val.field_class(source=p_name)
 
         return ret

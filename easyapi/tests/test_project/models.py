@@ -3,7 +3,7 @@ from enum import Enum
 from enumfields import EnumField
 from rest_framework import fields as rest_fields
 
-from easyapi.decorators import rest_method, rest_property
+from easyapi.decorators import rest_method, rest_property, rest_embeddable_function
 from easyapi.fields import PrimaryKeyReadOnlyField, RestEnumField
 
 
@@ -65,6 +65,11 @@ class Company(models.Model):
     @rest_method(rest_verbs=['POST'], arg_types={'number': int})
     def multiply_by_100(self, number):
         return number * 100
+
+
+    @rest_embeddable_function(many=True)
+    def projects_embedded(self):
+        return self.projects.all()
 
     @rest_property(rest_fields.Field)
     def title(self):

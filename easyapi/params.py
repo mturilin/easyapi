@@ -1,12 +1,20 @@
 import json
 import types
 
+from django.db.models import Model
 from django.utils.datastructures import MergeDict
 import isodate
 from rest_framework.exceptions import ParseError
 
 
 __author__ = 'mturilin'
+
+
+def convert_param_value(param_type, param_value):
+    if isinstance(param_type, Model):
+        return param_type.objects.get(id=int(param_value))
+
+    return param_type(param_value)
 
 
 def extract_rest_params(request, param_types, required_params=None):
@@ -25,7 +33,7 @@ def extract_rest_params(request, param_types, required_params=None):
 
         param_value = data_dict[param_name]
 
-        new_kwargs[param_name] = param_type(param_value)
+        new_kwargs[param_name] = convert_param_value(param_type, param_value)
 
     return new_kwargs
 
@@ -66,6 +74,7 @@ def list_param(list_str):
 def primary_key(model):
     def inner(id):
         return model.objects.get(id=id)
+
     return inner
 
 

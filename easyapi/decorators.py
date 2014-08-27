@@ -1,5 +1,7 @@
 from functools import wraps
 
+from rest_framework.fields import Field
+
 from .params import extract_rest_params
 
 
@@ -48,13 +50,23 @@ def map_params(**param_dict):
     return outer
 
 
-
-def rest_property(property_data_type, property_name=None):
+def rest_property(property_data_type=Field, property_name=None):
     class RestProperty(Property):
         field_class = property_data_type
         name = property_name
 
     return RestProperty
+
+
+def rest_embeddable_function(name=None, data_type=Field, many=False):
+    def outer(func):
+        func.rest_embeddable_function = name or func.__name__
+        func.rest_datatype = data_type
+        func.rest_many = many
+
+        return func
+
+    return outer
 
 
 class Property(object):

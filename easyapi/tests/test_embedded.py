@@ -89,6 +89,38 @@ def test_embedded_related(staff_api_client):
 
 
 @pytest.mark.django_db
+def test_embedded_function(staff_api_client):
+    company = CompanyFactory()
+
+    projects = [ProjectFactory(company=company) for i in range(3)]
+
+    response = staff_api_client.get('/api/company/%d/' % company.id, data={'_embedded': 'projects_embedded'})
+    assert response.status_code == HTTP_200_OK
+
+    response_data = json.loads(response.content)
+
+    assert len(response_data['_embedded']['projects_embedded']) == 3
+
+
+
+
+@pytest.mark.django_db
+def test_embedded_function_embedded(staff_api_client):
+    company = CompanyFactory()
+
+    projects = [ProjectFactory(company=company) for i in range(3)]
+
+    response = staff_api_client.get('/api/company/%d/' % company.id, data={'_embedded': 'projects_embedded__company'})
+    assert response.status_code == HTTP_200_OK
+
+    response_data = json.loads(response.content)
+
+    assert len(response_data['_embedded']['projects_embedded']) == 3
+    assert response_data['_embedded']['projects_embedded'][0]['_embedded']['company']['id'] == company.id
+
+
+
+@pytest.mark.django_db
 def test_embedded_related_when_none(staff_api_client):
     company = CompanyFactory()
 

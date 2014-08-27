@@ -147,6 +147,62 @@ Result:
         }
     }
 
+### Embeddable functions
+
+Sometimes it's nice to be able to embed the result of the function as an embeddable property
+
+    class Company(models.Model):
+
+        @rest_embeddable_function("my_project")
+        def my_project(self):
+            return Project(company=self)
+
+
+Request:
+
+    GET /company/1/?_embed=my_project
+
+Result:
+
+    {
+        “id” : 1,
+        “_embedded” : {
+            “my_project” : {
+                    “id”: 1,
+                }
+        }
+    }
+
+Embeddable function results also can have embeddable objects:
+
+    class Company(models.Model):
+
+        @rest_embeddable_function("my_project")
+        def my_project(self):
+            return Project(company=self)
+
+
+Request:
+
+    GET /company/1/?_embed=my_project__company
+
+Result:
+
+    {
+        “id” : 1,
+        “_embedded” : {
+            “my_project” : {
+                    “id”: 23,
+                    “_embedded” : {
+                        “company” : {
+                                “id”: 1,
+                            }
+                }
+        }
+    }
+
+
+
 ###Reverse relationships as sub-URL
 
 We should be able to get reverse relation sets as sub-URL. For example is the Company has reverse relation “departments”, we should be able to get a list of departments using:
