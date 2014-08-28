@@ -45,7 +45,7 @@ setup(
         'Topic :: Internet :: WWW/HTTP',
     ],
     install_requires=[
-        'Django',
+        'django',
         'djangorestframework',
         'python-dateutil',
         'isodate',
