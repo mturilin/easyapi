@@ -105,6 +105,20 @@ def test_embedded_function(staff_api_client):
 
 
 @pytest.mark.django_db
+def test_embedded_function_datatype(staff_api_client):
+    company = CompanyFactory()
+
+    response = staff_api_client.get('/api/company/%d/' % company.id, data={'_embedded': 'my_company_type'})
+    assert response.status_code == HTTP_200_OK
+
+    response_data = json.loads(response.content)
+
+    assert response_data['_embedded']['my_company_type'] == company.company_type.value
+
+
+
+
+@pytest.mark.django_db
 def test_embedded_function_custom(staff_api_client):
     company = CompanyFactory()
 

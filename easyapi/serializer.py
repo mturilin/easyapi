@@ -1,4 +1,6 @@
 import inspect
+from inspect import isfunction
+from operator import isCallable
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
@@ -37,11 +39,18 @@ def serialize_queryset(related_model, qs, inner_dict):
     return [new_serializer.to_native(inst) for inst in qs]
 
 
-def convert_list(sequence, embedded_def_dict):
-    return [convert_one(obj, embedded_def_dict) for obj in sequence]
+def convert_list(sequence, embedded_def_dict, data_type):
+    return [convert_one(obj, embedded_def_dict, data_type) for obj in sequence]
 
 
-def convert_one(obj, embedded_def_dict):
+def convert_one(obj, embedded_def_dict, data_type):
+    if data_type:
+        if issubclass(data_type, Field):
+            return data_type().to_native(obj)
+
+        if callable(data_type):
+            return data_type(obj)
+
     if not embedded_def_dict:
         return obj
 
@@ -144,24 +153,26 @@ class EmbeddedObjectsField(Field):
                                                         instance,
                                                         embedded_def_dict[relation_name])
 
-        def save_embedded_result(embedded_result, name, many):
+        def save_embedded_result(embedded_result, name, many, data_type):
             if many:
-                result[name] = convert_list(sequence=embedded_result, embedded_def_dict=embedded_def_dict[name])
+                result[name] = convert_list(sequence=embedded_result, embedded_def_dict=embedded_def_dict[name], data_type=data_type)
             else:
-                result[name] = convert_one(obj=embedded_result, embedded_def_dict=embedded_def_dict[name])
+                result[name] = convert_one(obj=embedded_result, embedded_def_dict=embedded_def_dict[name], data_type=data_type)
 
 
         # embedded functions
         for method_name, method in self.embedded_functions():
             if method_name and method_name in embedded_def_dict:
                 embedded_result = method(obj)  # calling the method
-                save_embedded_result(embedded_result, method_name, getattr(method, 'rest_many', False))
+                save_embedded_result(embedded_result, method_name, getattr(method, 'rest_many', False),
+                                     getattr(method, 'rest_data_type', None))
 
         # embedded properties
         for prop_name, descriptor in self.embedded_properties():
             if prop_name and prop_name in embedded_def_dict:
                 embedded_result = getattr(obj, prop_name)  # getting property value
-                save_embedded_result(embedded_result, prop_name, getattr(descriptor, 'rest_many', False))
+                save_embedded_result(embedded_result, prop_name, getattr(descriptor, 'rest_many', False),
+                                     getattr(descriptor, 'rest_data_type', None))
 
         return result
 

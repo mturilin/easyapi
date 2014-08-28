@@ -58,18 +58,20 @@ def rest_property(property_data_type=Field, property_name=None):
     return RestProperty
 
 
-def rest_embeddable_property(name=None, many=False):
+def rest_embeddable_property(name=None, many=False, data_type=None):
     class RestProperty(Property):
         rest_embeddable_property = name
         rest_many = many
+        rest_data_type = data_type
 
     return RestProperty
 
 
-def rest_embeddable_function(name=None, many=False):
+def rest_embeddable_function(name=None, many=False, data_type=None):
     def outer(func):
         func.rest_embeddable_function = name or func.__name__
         func.rest_many = many
+        func.rest_data_type = data_type
 
         return func
 

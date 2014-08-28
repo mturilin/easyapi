@@ -87,6 +87,11 @@ class Company(models.Model):
     def first_project(self):
         return self.projects.all().first()
 
+
+    @rest_embeddable_function(data_type=RestEnumField)
+    def my_company_type(self):
+        return self.company_type
+
     @rest_property(RestEnumField)
     def first_project_scope(self):
         try:
