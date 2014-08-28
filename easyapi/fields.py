@@ -20,9 +20,13 @@ class MetaField(Field):
         }
 
 
-class RestEnumField(WritableField):
+def enum_value(value):
+    return value and value.value
 
-    def __init__(self, enum=None,  source=None, label=None, help_text=None, read_only=False, write_only=False, required=None,
+
+class RestEnumField(WritableField):
+    def __init__(self, enum=None, source=None, label=None, help_text=None, read_only=False, write_only=False,
+                 required=None,
                  error_messages=None, widget=None, default=None, blank=None):
         self.enum = enum
         if not enum:
@@ -30,8 +34,9 @@ class RestEnumField(WritableField):
         super(RestEnumField, self).__init__(source, label, help_text, read_only, write_only, required, [],
                                             error_messages, widget, default, blank)
 
+
     def to_native(self, value):
-        return value and value.value
+        return enum_value(value)
 
     def from_native(self, value):
         if not self.enum or value is None or value == '':
