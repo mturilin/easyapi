@@ -46,7 +46,6 @@ def test_instance_method_list_qs(staff_api_client, function):
         ProjectFactory(company=company, budget=(i + 1) * 100)
 
     response = staff_api_client.get('/api/company/%d/%s/' % (company.pk, function))
-    print response.content
     response_data = json.loads(response.content)
 
     assert len(response_data) == 3
@@ -60,7 +59,6 @@ def test_instance_method_with_scalar_param(staff_api_client):
     company = CompanyFactory()
 
     response = staff_api_client.post('/api/company/%d/multiply_by_100/' % company.pk, data={'number': 23})
-    print response.content
     response_data = json.loads(response.content)
 
     assert response_data == 2300
@@ -92,7 +90,6 @@ def test_string_property(staff_api_client):
 
     response = staff_api_client.get('/api/company/%d/' % company.pk)
 
-    print response.content
     response_data = json.loads(response.content)
 
     assert 'title' in response_data
@@ -107,7 +104,6 @@ def test_model_property(staff_api_client):
 
     response = staff_api_client.get('/api/company/%d/' % company.pk)
 
-    print response.content
     response_data = json.loads(response.content)
 
     assert 'first_project' in response_data
@@ -123,7 +119,6 @@ def test_related_object_lookup(staff_api_client):
 
     response = staff_api_client.get('/api/project/%d/' % project.pk)
 
-    print response.content
     response_data = json.loads(response.content)
 
     assert 'company_name' in response_data
