@@ -62,7 +62,10 @@ class EmbeddedObjectsField(Field):
         self.related_fields_names = [field.name for field in self.related_fields]
         self.reverse_rel_names = [relation.get_accessor_name() for relation in self.reverse_rels]
         self.possible_embedded_names = set(
-            self.related_fields_names + self.reverse_rel_names + self.embedded_function_names())
+            self.related_fields_names +
+            self.reverse_rel_names +
+            self.embedded_function_names() +
+            self.embedded_property_names())
 
 
     def get_embedded_def_dict(self):
@@ -141,15 +144,27 @@ class EmbeddedObjectsField(Field):
                                                         instance,
                                                         embedded_def_dict[relation_name])
 
-        # for functional relations
+        def save_embedded_result(embedded_result, name, many):
+            if many:
+                result[name] = convert_list(sequence=embedded_result, embedded_def_dict=embedded_def_dict[name])
+            else:
+                result[name] = convert_one(obj=embedded_result, embedded_def_dict=embedded_def_dict[name])
+
+
+        # embedded functions
         for method_name, method in self.embedded_functions():
             name = getattr(method, 'rest_embeddable_function', None)
             if name and name in embedded_def_dict:
-                many = getattr(method, 'rest_many', False)
-                if many:
-                    result[name] = convert_list(sequence=method(obj), embedded_def_dict=embedded_def_dict[name])
-                else:
-                    result[name] = convert_one(obj=method(obj), embedded_def_dict=embedded_def_dict[name])
+                embedded_result = method(obj) # calling the method
+                save_embedded_result(embedded_result, name, getattr(method, 'rest_many', False))
+
+        # embedded properties
+        for prop_name, descriptor in self.embedded_properties():
+            name = getattr(descriptor, 'rest_embeddable_property') or descriptor.fget.__name__
+            if name and name in embedded_def_dict:
+                embedded_result = getattr(obj, name) # getting property value
+                save_embedded_result(embedded_result, name, getattr(descriptor, 'rest_many', False))
+
 
         return result
 
@@ -159,14 +174,21 @@ class EmbeddedObjectsField(Field):
 
 
     def embedded_functions(self):
-        return inspect.getmembers(self.model,
-                                  predicate=lambda x: inspect.ismethod(x) and hasattr(x, 'rest_embeddable_function'))
+        return class_functions_with_attr(self.model, 'rest_embeddable_function')
+
+    def embedded_property_names(self):
+        return [method_name for method_name, method in self.embedded_properties()]
+
+    def embedded_properties(self):
+        return class_properties_with_attr(self.model, 'rest_embeddable_property')
 
 
-def class_rest_properties(cls):
-    property_items = inspect.getmembers(cls, predicate=inspect.isdatadescriptor)
+def class_properties_with_attr(cls, flag_attribute):
+    return inspect.getmembers(cls, predicate=lambda x: inspect.isdatadescriptor(x) and hasattr(x, flag_attribute))
 
-    return [(p_name, p_val) for p_name, p_val in property_items if hasattr(p_val, 'field_class')]
+
+def class_functions_with_attr(cls, flag_attribute):
+    return inspect.getmembers(cls, predicate=lambda x: inspect.ismethod(x) and hasattr(x, flag_attribute))
 
 
 class JsonField(rest_fields.Field):
@@ -229,7 +251,10 @@ class AutoModelSerializer(ModelSerializer):
         ret['_meta'] = MetaField()
         ret['_embedded'] = EmbeddedObjectsField(cls, embedded_def_dict=self.embedded_def_dict)
 
-        for p_name, p_val in class_rest_properties(cls):
+
+
+        # adding fields for properties
+        for p_name, p_val in class_properties_with_attr(cls, 'field_class'):
             field_name = getattr(p_val, 'name', p_name) or p_name  # we use property name as field name by default
             ret[field_name] = p_val.field_class(source=p_name)
 

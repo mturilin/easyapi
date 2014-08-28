@@ -3,7 +3,7 @@ from enum import Enum
 from enumfields import EnumField
 from rest_framework import fields as rest_fields
 
-from easyapi.decorators import rest_method, rest_property, rest_embeddable_function
+from easyapi.decorators import rest_method, rest_property, rest_embeddable_function, rest_embeddable_property
 from easyapi.fields import PrimaryKeyReadOnlyField, RestEnumField
 
 
@@ -69,6 +69,10 @@ class Company(models.Model):
 
     @rest_embeddable_function(many=True)
     def projects_embedded(self):
+        return self.projects.all()
+
+    @rest_embeddable_property(many=True)
+    def projects_embedded_prop(self):
         return self.projects.all()
 
     @rest_property(rest_fields.Field)

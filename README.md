@@ -202,6 +202,18 @@ Result:
     }
 
 
+### Embeddable property
+
+Embeddable property is the same as embeddable function at the REST layer. The only difference that at the Python layer
+the embeddable property looks like a property (should be called without parenthesis).
+
+    class Company(models.Model):
+
+        @rest_embeddable_property()
+        def my_project(self):
+            return Project(company=self)
+
+
 
 ###Reverse relationships as sub-URL
 
