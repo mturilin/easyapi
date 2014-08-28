@@ -16,7 +16,7 @@ README = read('README.md')
 class PyTest(TestCommand):
     def finalize_options(self):
         TestCommand.finalize_options(self)
-        self.test_args = ['tests', '-s']
+        self.test_args = ['easyapi/tests', '-s']
         self.test_suite = True
 
     def run_tests(self):
