@@ -41,11 +41,11 @@ class Company(models.Model):
     country = models.CharField(max_length=100)
     company_type = EnumField(CompanyType)
 
-    address= models.OneToOneField(Address, null=True, blank=True, related_name="company")
+    address = models.OneToOneField(Address, null=True, blank=True, related_name="company")
 
     # extra_rest_fields = {
     # # 'first_project': PrimaryKeyReadOnlyField(),
-    #     # 'title': Field(),
+    # # 'title': Field(),
     # }
 
     objects = CompanyManager()
@@ -69,6 +69,10 @@ class Company(models.Model):
 
     @rest_embeddable_function(many=True)
     def projects_embedded(self):
+        return self.projects.all()
+
+    @rest_embeddable_function(name="projects_embedded_custom_function", many=True)
+    def projects_embedded_custom(self):
         return self.projects.all()
 
     @rest_embeddable_property(many=True)

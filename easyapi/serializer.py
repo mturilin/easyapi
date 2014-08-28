@@ -153,18 +153,15 @@ class EmbeddedObjectsField(Field):
 
         # embedded functions
         for method_name, method in self.embedded_functions():
-            name = getattr(method, 'rest_embeddable_function', None)
-            if name and name in embedded_def_dict:
-                embedded_result = method(obj) # calling the method
-                save_embedded_result(embedded_result, name, getattr(method, 'rest_many', False))
+            if method_name and method_name in embedded_def_dict:
+                embedded_result = method(obj)  # calling the method
+                save_embedded_result(embedded_result, method_name, getattr(method, 'rest_many', False))
 
         # embedded properties
         for prop_name, descriptor in self.embedded_properties():
-            name = getattr(descriptor, 'rest_embeddable_property') or descriptor.fget.__name__
-            if name and name in embedded_def_dict:
-                embedded_result = getattr(obj, name) # getting property value
-                save_embedded_result(embedded_result, name, getattr(descriptor, 'rest_many', False))
-
+            if prop_name and prop_name in embedded_def_dict:
+                embedded_result = getattr(obj, prop_name)  # getting property value
+                save_embedded_result(embedded_result, prop_name, getattr(descriptor, 'rest_many', False))
 
         return result
 
@@ -174,13 +171,15 @@ class EmbeddedObjectsField(Field):
 
 
     def embedded_functions(self):
-        return class_functions_with_attr(self.model, 'rest_embeddable_function')
+        return [(method.rest_embeddable_function, method) for method_name, method in
+                class_functions_with_attr(self.model, 'rest_embeddable_function')]
 
     def embedded_property_names(self):
-        return [method_name for method_name, method in self.embedded_properties()]
+        return [prop_name for prop_name, descriptor in self.embedded_properties()]
 
     def embedded_properties(self):
-        return class_properties_with_attr(self.model, 'rest_embeddable_property')
+        return [(getattr(descriptor, 'rest_embeddable_property') or descriptor.fget.__name__, descriptor) for
+                prop_name, descriptor in class_properties_with_attr(self.model, 'rest_embeddable_property')]
 
 
 def class_properties_with_attr(cls, flag_attribute):
