@@ -54,11 +54,11 @@ class Company(models.Model):
     def total_budget(self):
         return sum([float(project.budget) for project in self.projects.filter(is_open=True)])
 
-    @rest_method()
+    @rest_method(many=True) # we need many=True to support embed
     def project_list(self):
         return list(self.projects.filter(is_open=True))
 
-    @rest_method()
+    @rest_method(many=True)
     def project_qs(self):
         return self.projects.filter(is_open=True)
 

@@ -1,7 +1,6 @@
 import json
 
 from easyapi.tests.factories import CompanyFactory, ProjectFactory
-from easyapi.tests.test_project.models import Project
 
 
 __author__ = 'mikhailturilin'
@@ -51,6 +50,25 @@ def test_instance_method_list_qs(staff_api_client, function):
     assert len(response_data) == 3
     for project_dict in response_data:
         check_project_dict(project_dict)
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("function", ["project_list", "project_qs"])
+def test_instance_method_list_qs_embed(staff_api_client, function):
+    # create 3 companies
+    company = CompanyFactory()
+
+    for i in range(3):
+        ProjectFactory(company=company, budget=(i + 1) * 100)
+
+    response = staff_api_client.get('/api/company/%d/%s/' % (company.pk, function),
+                                    data={'_embedded': 'company'})
+    response_data = json.loads(response.content)
+
+    assert len(response_data) == 3
+    for project_dict in response_data:
+        check_project_dict(project_dict)
+        assert project_dict['_embedded']['company']['id'] == company.id
 
 
 @pytest.mark.django_db

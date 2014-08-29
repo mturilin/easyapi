@@ -20,12 +20,15 @@ class InstanceMethodWrapper(object):
         self.method = getattr(viewset.model, self.method_name)
         self.bind_to_methods = self.method.bind_to_methods
         self.arg_types = getattr(self.method, 'arg_types', {})
+        self.data_type = getattr(self.method, 'data_type', None)
+        self.many = getattr(self.method, 'many', False)
 
     def __call__(self, request, *args, **kwargs):
         instance = self.viewset.get_object()
         params = extract_rest_params(request, self.arg_types)
         result = self.method(instance, **params)
-        return Response(result)
+        converted_result = convert_result(result, embedded_dict_from_request(request), self.data_type, self.many)
+        return Response(converted_result)
 
 
 class ManagerMethodWrapper(object):

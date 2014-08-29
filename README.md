@@ -26,6 +26,12 @@ The API should be able to use methods that returns:
 
 The decorator should describe the type of the parameters and whether each of them is required.
 
+
+If the instance method returns a model or a list of models, related entities could be embedded into them using
+"_embedded" parameter. For more info see "Embed foreign key objects into the model’s JSON" article and
+"test_instance_method_list_qs_embed" test.
+
+
 ###Expose model’s properties (DONE)
 Create a decorator to automatically add the model’s property to the serialized form of the model.
 
