@@ -1,10 +1,9 @@
 import inspect
-from inspect import isfunction
-from operator import isCallable
 
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models
 from django.db.models import ManyToManyField
+from django.utils.functional import SimpleLazyObject
 from enumfields.fields import EnumFieldMixin
 from rest_framework.compat import get_concrete_model
 from rest_framework.exceptions import ParseError
@@ -19,27 +18,45 @@ from easyapi.fields import MetaField, RestEnumField
 __author__ = 'mikhailturilin'
 
 
-def nested_model_serializer(related_model, inner_dict, to_many=False):
+def model_serializer_class(model_class):
     class _DefaultSerializer(AutoModelSerializer):
         class Meta:
-            model = related_model
+            model = model_class
 
-    return _DefaultSerializer(embedded_def_dict=inner_dict, many=to_many)
+    return _DefaultSerializer
 
 
-def serialize_model(related_model, instance, inner_dict, to_many=False):
+def model_serializer(model_class, inner_dict=None, many=False):
+     return model_serializer_class(model_class)(embedded_def_dict=inner_dict, many=many)
+
+
+def serialize_model(model_class, instance, inner_dict, many=False):
     if not instance:
         return None
-    new_serializer = nested_model_serializer(related_model, inner_dict, to_many)
+    new_serializer = model_serializer(model_class, inner_dict, many)
     return new_serializer.to_native(instance)
 
 
+def serialize_instance(instance, embedded_dict=None, many=False):
+    if isinstance(instance, SimpleLazyObject):
+        instance = instance._wrapped
+
+    return serialize_model(type(instance), instance, embedded_dict, many)
+
+
 def serialize_queryset(related_model, qs, inner_dict):
-    new_serializer = nested_model_serializer(related_model, inner_dict)
+    new_serializer = model_serializer(related_model, inner_dict)
     return [new_serializer.to_native(inst) for inst in qs]
 
 
-def convert_list(sequence, embedded_def_dict, data_type):
+def convert_result(value, embedded_def_dict, data_type, many):
+    if many:
+        return convert_many(sequence=value, embedded_def_dict=embedded_def_dict, data_type=data_type)
+    else:
+        return convert_one(obj=value, embedded_def_dict=embedded_def_dict, data_type=data_type)
+
+
+def convert_many(sequence, embedded_def_dict, data_type):
     return [convert_one(obj, embedded_def_dict, data_type) for obj in sequence]
 
 
@@ -56,6 +73,26 @@ def convert_one(obj, embedded_def_dict, data_type):
 
     if isinstance(obj, models.Model):
         return serialize_model(type(obj), obj, embedded_def_dict)
+
+
+def update_embedded_dict(embedded_dict, param_string):
+    if param_string:
+        embedded_params = param_string.split(',')
+        for embedded_param in embedded_params:
+            components = embedded_param.split('__')
+            cur_dict = embedded_dict
+            for c in components:
+                cur_dict = cur_dict[c]
+
+
+def parse_embedded_dict(embed_str):
+    embedded_def_dict = BottomlessDict()
+    update_embedded_dict(embedded_def_dict, embed_str)
+    return embedded_def_dict
+
+
+def embedded_dict_from_request(request):
+    return parse_embedded_dict(request.QUERY_PARAMS.get('_embedded', None))
 
 
 class EmbeddedObjectsField(Field):
@@ -92,15 +129,15 @@ class EmbeddedObjectsField(Field):
             return self.embedded_def_dict
 
         try:
-            request = self.context['request']
+            embedded_def_dict = embedded_dict_from_request(self.context['request'])
         except (AttributeError, KeyError):
             # meaning no context is provided
-            return None
+            return {}
 
-        embedded_def_dict = BottomlessDict()
 
-        update_embedded_dict(embedded_def_dict, request.QUERY_PARAMS.get('_embedded', None))
-        update_embedded_dict(embedded_def_dict, getattr(self.model, 'rest_embedded', None))
+        # adding embedded defs defined on the model level
+        for embed_str in getattr(self.model, 'rest_embedded', []):
+            update_embedded_dict(embedded_def_dict, embed_str)
 
 
         # checking that there are no unknown embedded fields
@@ -153,26 +190,23 @@ class EmbeddedObjectsField(Field):
                                                         instance,
                                                         embedded_def_dict[relation_name])
 
-        def save_embedded_result(embedded_result, name, many, data_type):
-            if many:
-                result[name] = convert_list(sequence=embedded_result, embedded_def_dict=embedded_def_dict[name], data_type=data_type)
-            else:
-                result[name] = convert_one(obj=embedded_result, embedded_def_dict=embedded_def_dict[name], data_type=data_type)
-
-
         # embedded functions
         for method_name, method in self.embedded_functions():
             if method_name and method_name in embedded_def_dict:
                 embedded_result = method(obj)  # calling the method
-                save_embedded_result(embedded_result, method_name, getattr(method, 'rest_many', False),
-                                     getattr(method, 'rest_data_type', None))
+                result[method_name] = convert_result(embedded_result,
+                                                     embedded_def_dict[method_name],
+                                                     getattr(method, 'rest_data_type', None),
+                                                     getattr(method, 'rest_many', False))
 
         # embedded properties
         for prop_name, descriptor in self.embedded_properties():
             if prop_name and prop_name in embedded_def_dict:
                 embedded_result = getattr(obj, prop_name)  # getting property value
-                save_embedded_result(embedded_result, prop_name, getattr(descriptor, 'rest_many', False),
-                                     getattr(descriptor, 'rest_data_type', None))
+                result[prop_name] = convert_result(embedded_result,
+                                                   embedded_def_dict[prop_name],
+                                                   getattr(descriptor, 'rest_data_type', None),
+                                                   getattr(descriptor, 'rest_many', False))
 
         return result
 
@@ -205,12 +239,6 @@ class JsonField(rest_fields.Field):
     pass
 
 
-def serializer_for_model(model_class):
-    class _serializer(AutoModelSerializer):
-        class Meta:
-            model = model_class
-
-    return _serializer
 
 
 class AutoModelSerializer(ModelSerializer):

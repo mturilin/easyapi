@@ -22,7 +22,7 @@ class ProjectScope(Enum):
 
 
 class CompanyManager(models.Manager):
-    @rest_method(arg_types={'country': str})
+    @rest_method(arg_types={'country': str}, many=True)
     def select_by_country(self, country):
         return self.filter(country=country)
 

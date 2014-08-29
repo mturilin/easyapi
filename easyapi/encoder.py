@@ -2,10 +2,9 @@ from enum import Enum
 from rest_framework.renderers import JSONRenderer
 from rest_framework.utils.encoders import JSONEncoder
 from django.db import models
-from django.utils.functional import SimpleLazyObject
 
 from easyapi.fields import enum_value
-from easyapi.serializer import AutoModelSerializer
+from easyapi.serializer import serialize_instance
 
 
 __author__ = 'mikhailturilin'
@@ -14,15 +13,7 @@ __author__ = 'mikhailturilin'
 class ModelJSONEncoder(JSONEncoder):
     def default(self, o):
         if isinstance(o, models.Model):
-            if isinstance(o, SimpleLazyObject):
-                o = o._wrapped
-
-            class DefaultSerializer(AutoModelSerializer):
-                class Meta:
-                    model = type(o)
-
-            serializer = DefaultSerializer(instance=o)
-            return serializer.data
+            return serialize_instance(o)
 
         elif isinstance(o, Enum):
             return enum_value(o)

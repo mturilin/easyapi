@@ -44,6 +44,9 @@ Create a decorator to automatically add the model’s property to the serialized
 Manager’s methods are used to perform operations on a sets of models. These methods could be also useful by
 Angular application.
 
+If the manager method returns a model or a list of models, realated entities could be embedded into them using
+\_embedded parameter. For more info see "Embed foreign key objects into the model’s JSON" article and
+"test_manager_method_embedded" test.
 
 ### Automatically create viewsets for all models in the application (DONE)
 

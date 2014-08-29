@@ -8,7 +8,7 @@ from .params import extract_rest_params
 __author__ = 'mikhailturilin'
 
 
-def rest_method(rest_verbs=None, arg_types=None):
+def rest_method(rest_verbs=None, arg_types=None, data_type=None, many=False):
     """
     Decorator that saves the function's rest args and verbs definitions to be used later in the InstanceViewSet
     :param rest_verbs:
@@ -21,6 +21,8 @@ def rest_method(rest_verbs=None, arg_types=None):
     def outer(function):
         function.bind_to_methods = rest_verbs
         function.arg_types = arg_types
+        function.data_type = data_type
+        function.many = many
         return function
 
     return outer

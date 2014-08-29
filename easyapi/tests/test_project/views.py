@@ -5,7 +5,7 @@ from rest_framework.views import APIView
 
 from easyapi.decorators import map_params
 from easyapi.paginator import EasyPaginationSerializer
-from easyapi.serializer import serializer_for_model
+from easyapi.serializer import model_serializer_class
 from easyapi.tests.test_project.models import Company
 
 
@@ -26,7 +26,7 @@ class WelcomeView(APIView):
 
 class CompanyPaginator(EasyPaginationSerializer):
     class Meta:
-        object_serializer_class = serializer_for_model(Company)
+        object_serializer_class = model_serializer_class(Company)
 
 
 @api_view(['GET'])
