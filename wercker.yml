@@ -25,4 +25,5 @@ build:
     - script:
         name: echo python information
         code: |
+          python setup.py install
           python setup.py test
