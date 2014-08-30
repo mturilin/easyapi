@@ -99,11 +99,17 @@ class Company(models.Model):
         except AttributeError:
             return None
 
+class ManagerManager(models.Manager):
+    @rest_method(arg_types={'id':int})
+    def by_id(self, id):
+        return self.get(id=id)
 
 class Manager(models.Model):
     name = models.TextField()
 
-    rest_embed = ['projects']
+    rest_embedded = ['projects']
+
+    objects = ManagerManager()
 
 
 class Project(models.Model):

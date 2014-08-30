@@ -128,7 +128,7 @@ class EmbeddedObjectsField(Field):
             embedded_def_dict = embedded_dict_from_request(self.context['request'])
         except (AttributeError, KeyError):
             # meaning no context is provided
-            return {}
+            embedded_def_dict = BottomlessDict()
 
 
         update_embedded_dict(embedded_def_dict, getattr(self.model, 'rest_embedded', []))
