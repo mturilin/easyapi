@@ -74,6 +74,21 @@ def test_embedded_for_list(staff_api_client):
 
 
 @pytest.mark.django_db
+def test_embedded_model_level(staff_api_client):
+
+    project = ProjectFactory()
+
+    response = staff_api_client.get('/auto-list/test_project/manager/%d/' % project.manager.id, data={'_embedded': 'projects'})
+    assert response.status_code == HTTP_200_OK
+
+    response_data = json.loads(response.content)
+
+
+    assert len(response_data['_embedded']['projects']) == 1
+
+
+
+@pytest.mark.django_db
 def test_embedded_related(staff_api_client):
     company = CompanyFactory()
 

@@ -69,9 +69,8 @@ class EmbeddedObjectsField(Field):
 
 
     def get_embedded_def_dict(self):
-        def update_embedded_dict(embedded_dict, param_string):
-            if param_string:
-                embedded_params = param_string.split(',')
+        def update_embedded_dict(embedded_dict, embedded_params):
+            if embedded_params:
                 for embedded_param in embedded_params:
                     components = embedded_param.split('__')
                     cur_dict = embedded_dict
@@ -90,8 +89,8 @@ class EmbeddedObjectsField(Field):
 
         embedded_def_dict = BottomlessDict()
 
-        update_embedded_dict(embedded_def_dict, request.QUERY_PARAMS.get('_embedded', None))
-        update_embedded_dict(embedded_def_dict, getattr(self.model, 'rest_embedded', None))
+        update_embedded_dict(embedded_def_dict, request.QUERY_PARAMS.get('_embedded', '').split(','))
+        update_embedded_dict(embedded_def_dict, getattr(self.model, 'rest_embedded', []))
 
 
         # checking that there are no unknown embedded fields

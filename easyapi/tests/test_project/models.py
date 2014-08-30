@@ -41,11 +41,11 @@ class Company(models.Model):
     country = models.CharField(max_length=100)
     company_type = EnumField(CompanyType)
 
-    address= models.OneToOneField(Address, null=True, blank=True, related_name="company")
+    address = models.OneToOneField(Address, null=True, blank=True, related_name="company")
 
     # extra_rest_fields = {
     # # 'first_project': PrimaryKeyReadOnlyField(),
-    #     # 'title': Field(),
+    # # 'title': Field(),
     # }
 
     objects = CompanyManager()
@@ -91,12 +91,20 @@ class Company(models.Model):
             return None
 
 
+class Manager(models.Model):
+    name = models.TextField()
+
+    rest_embed = ['projects']
+
+
 class Project(models.Model):
+
     company = models.ForeignKey(Company, related_name="projects")
     name = models.TextField()
     budget = models.DecimalField(decimal_places=2, max_digits=20, default=0)
     is_open = models.BooleanField(default=True)
     start_date = models.DateField()
+    manager = models.ForeignKey(Manager, related_name="projects")
     scope = EnumField(ProjectScope)
 
     extra_rest_fields = {
