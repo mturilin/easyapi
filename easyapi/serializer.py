@@ -74,10 +74,8 @@ def convert_one(obj, embedded_def_dict, data_type):
     if isinstance(obj, models.Model):
         return serialize_model(type(obj), obj, embedded_def_dict)
 
-
-def update_embedded_dict(embedded_dict, param_string):
-    if param_string:
-        embedded_params = param_string.split(',')
+def update_embedded_dict(embedded_dict, embedded_params):
+    if embedded_params:
         for embedded_param in embedded_params:
             components = embedded_param.split('__')
             cur_dict = embedded_dict
@@ -92,7 +90,7 @@ def parse_embedded_dict(embed_str):
 
 
 def embedded_dict_from_request(request):
-    return parse_embedded_dict(request.QUERY_PARAMS.get('_embedded', None))
+    return parse_embedded_dict(request.QUERY_PARAMS.get('_embedded', '').split(','))
 
 
 class EmbeddedObjectsField(Field):
@@ -115,14 +113,7 @@ class EmbeddedObjectsField(Field):
 
 
     def get_embedded_def_dict(self):
-        def update_embedded_dict(embedded_dict, param_string):
-            if param_string:
-                embedded_params = param_string.split(',')
-                for embedded_param in embedded_params:
-                    components = embedded_param.split('__')
-                    cur_dict = embedded_dict
-                    for c in components:
-                        cur_dict = cur_dict[c]
+
 
 
         if self.embedded_def_dict:
@@ -135,9 +126,7 @@ class EmbeddedObjectsField(Field):
             return {}
 
 
-        # adding embedded defs defined on the model level
-        for embed_str in getattr(self.model, 'rest_embedded', []):
-            update_embedded_dict(embedded_def_dict, embed_str)
+        update_embedded_dict(embedded_def_dict, getattr(self.model, 'rest_embedded', []))
 
 
         # checking that there are no unknown embedded fields
