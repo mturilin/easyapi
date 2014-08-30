@@ -83,14 +83,19 @@ def update_embedded_dict(embedded_dict, embedded_params):
                 cur_dict = cur_dict[c]
 
 
-def parse_embedded_dict(embed_str):
+def parse_embedded_dict(embedded_params):
     embedded_def_dict = BottomlessDict()
-    update_embedded_dict(embedded_def_dict, embed_str)
+    update_embedded_dict(embedded_def_dict, embedded_params)
     return embedded_def_dict
 
 
 def embedded_dict_from_request(request):
-    return parse_embedded_dict(request.QUERY_PARAMS.get('_embedded', '').split(','))
+    embedded_param = request.QUERY_PARAMS.get('_embedded', '')
+    if embedded_param:
+        initial = embedded_param.split(',')
+    else:
+        initial = None
+    return parse_embedded_dict(initial)
 
 
 class EmbeddedObjectsField(Field):
