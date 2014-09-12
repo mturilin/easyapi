@@ -1,4 +1,5 @@
 from functools import wraps
+from django.http.response import HttpResponseBadRequest
 
 from rest_framework.fields import Field
 
@@ -42,7 +43,15 @@ def map_params(**param_dict):
             new_kwargs = extract_rest_params(request, param_dict)
 
             kwargs.update(new_kwargs)
-            return func(self, request, *args, **kwargs)
+
+            try:
+                result = func(self, request, *args, **kwargs)
+            except StandardError as err:
+                if isinstance(err, (ValueError, LookupError)):
+                    return HttpResponseBadRequest(err)
+                raise err
+
+            return result
 
         if 'self' in func.func_code.co_varnames:
             return inner_method
