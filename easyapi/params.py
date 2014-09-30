@@ -22,7 +22,8 @@ def extract_rest_params(request, param_types, required_params=None):
 
     new_kwargs = {}
 
-    data_dict = MergeDict(request.DATA, request.GET)
+    request_dicts = [getattr(request, name, {}) for name in {'DATA', 'GET', 'POST'}]
+    data_dict = MergeDict(*request_dicts)
 
     for (param_name, param_type) in param_types.iteritems():
 
