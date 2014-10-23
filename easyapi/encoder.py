@@ -18,6 +18,9 @@ class ModelJSONEncoder(JSONEncoder):
         elif isinstance(o, Enum):
             return enum_value(o)
 
+        elif hasattr(o, 'to_json'):
+            return o.to_json()
+
         else:
             return super(ModelJSONEncoder, self).default(o)
 

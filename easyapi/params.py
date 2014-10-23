@@ -2,6 +2,7 @@ import json
 import types
 
 from django.db.models import Model
+from django.shortcuts import get_object_or_404
 from django.utils.datastructures import MergeDict
 import isodate
 from rest_framework.exceptions import ParseError
@@ -74,7 +75,7 @@ def list_param(list_str):
 
 def primary_key(model):
     def inner(id):
-        return model.objects.get(id=id)
+        return get_object_or_404(model, id=id)
 
     return inner
 

@@ -6,3 +6,4 @@
 *.sqlite3-journal
 django_easy_api.egg-info
 coverage.xml
+.DS_Store
