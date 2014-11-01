@@ -32,7 +32,7 @@ setup(
     description='Real Python Enums for Django.',
     license='MIT',
     url='https://github.com/mturilin/easyapi',
-    long_description=README,
+    long_description='',
     packages=find_packages(),
     zip_safe=False,
     classifiers=[
