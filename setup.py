@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import os
 from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
@@ -26,10 +25,10 @@ class PyTest(TestCommand):
 
 
 setup(
-    name='django-easy-api',
-    version='0.1',
-    author='mikhailturilin',
-    author_email='webmaster@hzdg.com',
+    name='easy-rest',
+    version='0.3.0',
+    author='mturilin',
+    author_email='mturilin@gmail.com',
     description='Real Python Enums for Django.',
     license='MIT',
     url='https://github.com/mturilin/easyapi',

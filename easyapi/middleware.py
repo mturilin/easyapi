@@ -1,6 +1,8 @@
-from rest_framework.response import Response
+from django.http import HttpResponse
 from rest_framework.status import HTTP_400_BAD_REQUEST
+
 from easyapi.errors import BadRequestError
+
 
 __author__ = 'michaelturilin'
 
@@ -11,6 +13,6 @@ class BadRequestMiddleware(object):
     status for the requests that raise ValueError and descendants.
     """
 
-    def process_exception(request, exception):
+    def process_exception(self, request, exception):
         if isinstance(exception, (ValueError, BadRequestError)):
-            return Response(exception, status=HTTP_400_BAD_REQUEST)
+            return HttpResponse(exception, status=HTTP_400_BAD_REQUEST)
