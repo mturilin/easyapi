@@ -26,7 +26,7 @@ class PyTest(TestCommand):
 
 setup(
     name='easy-rest',
-    version='0.3.0',
+    version='0.4.0',
     author='mturilin',
     author_email='mturilin@gmail.com',
     description='Real Python Enums for Django.',
