@@ -7,3 +7,5 @@
 django_easy_api.egg-info
 coverage.xml
 .DS_Store
+dist
+build
