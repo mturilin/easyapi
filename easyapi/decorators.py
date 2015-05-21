@@ -2,6 +2,7 @@ from functools import wraps
 from django.http.response import HttpResponseBadRequest
 
 from rest_framework.fields import Field
+from easyapi.errors import BadRequestError
 
 from .params import extract_rest_params
 
@@ -28,14 +29,47 @@ def rest_method(rest_verbs=None, arg_types=None, data_type=None, many=False):
 
     return outer
 
+def check_unfilled_required_params(func, args, kwargs):
+    unfilled = unfilled_required_params(func, args, kwargs)
+    if unfilled:
+        param_list_str = ", ".join(unfilled)
+        raise BadRequestError("Required params (%s) are not specified" % param_list_str)
+
+
+def unfilled_required_params(func, args, kwargs):
+    """
+    Returns the list of unfilled non-default params, which:
+        - Don't have default values
+        - Are not filled using args
+        - Are not filled using kwargs
+    """
+    arguments = func.func_code.co_varnames[:func.func_code.co_argcount] # slicing to cut off * and ** args
+    defaults = func.func_defaults
+
+    num_of_defaults = len(defaults or [])
+
+    # non default params are all params except the last "num_of_defaults"  could be empty
+    non_default_args = arguments[:-num_of_defaults] if num_of_defaults else arguments
+
+    # some the params are filled positionally with args
+    unfilled_positionally_non_default_args = non_default_args[len(args):]
+
+    # so the real unfilled params are those which are also not filled using kwargs
+    unfilled_non_default_args = set(unfilled_positionally_non_default_args) - set(kwargs.keys())
+
+    return unfilled_non_default_args
+
+
 
 def map_params(**param_dict):
     def outer(func):
         @wraps(func)
         def inner_func(request, *args, **kwargs):
             new_kwargs = extract_rest_params(request, param_dict)
-
             kwargs.update(new_kwargs)
+
+            check_unfilled_required_params(func, [request] + list(args), kwargs)
+
             return func(request, *args, **kwargs)
 
         @wraps(func)
@@ -43,6 +77,8 @@ def map_params(**param_dict):
             new_kwargs = extract_rest_params(request, param_dict)
 
             kwargs.update(new_kwargs)
+
+            check_unfilled_required_params(func, [self, request] + list(args), kwargs)
 
             try:
                 result = func(self, request, *args, **kwargs)

@@ -47,6 +47,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'easyapi.middleware.HttpErrorsMiddleware',
 )
 
 ROOT_URLCONF = 'easyapi.tests.test_project.urls'
