@@ -1,6 +1,6 @@
-from django.core.exceptions import ObjectDoesNotExist
+from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.http import HttpResponse
-from rest_framework.status import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND
+from rest_framework.status import HTTP_400_BAD_REQUEST, HTTP_404_NOT_FOUND, HTTP_409_CONFLICT
 
 from easyapi.errors import BadRequestError
 
@@ -21,4 +21,7 @@ class HttpErrorsMiddleware(object):
 
         if isinstance(exception, (ObjectDoesNotExist,)):
             return HttpResponse(exception, status=HTTP_404_NOT_FOUND)
+
+        if isinstance(exception, (MultipleObjectsReturned,)):
+            return HttpResponse(exception, status=HTTP_409_CONFLICT)
 

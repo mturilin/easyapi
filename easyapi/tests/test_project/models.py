@@ -66,7 +66,6 @@ class Company(models.Model):
     def multiply_by_100(self, number):
         return number * 100
 
-
     @rest_embeddable_function(many=True)
     def projects_embedded(self):
         return self.projects.all()
@@ -100,6 +99,10 @@ class Company(models.Model):
             return None
 
 class ManagerManager(models.Manager):
+    @rest_method(arg_types={"a": int, "b": int})
+    def plus(self, a, b):
+        return a + b
+
     @rest_method(arg_types={'id':int})
     def by_id(self, id):
         return self.get(id=id)

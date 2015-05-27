@@ -2,10 +2,11 @@ import inspect
 
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet
+from easyapi.decorators import check_unfilled_required_params
 
 from easyapi.encoder import ModelJSONRenderer
 from easyapi.filters import QuerySetFilterBackend, FILTER_ALL
-from easyapi.params import extract_rest_params
+from easyapi.params import extract_rest_params, required_params
 from easyapi.permissions import IsStaff
 from easyapi.serializer import AutoModelSerializer, convert_result, embedded_dict_from_request
 
@@ -25,7 +26,8 @@ class InstanceMethodWrapper(object):
 
     def __call__(self, request, *args, **kwargs):
         instance = self.viewset.get_object()
-        params = extract_rest_params(request, self.arg_types)
+        params = extract_rest_params(request, self.arg_types, required_params(self.method, skip_self=True))
+
         result = self.method(instance, **params)
         converted_result = convert_result(result, embedded_dict_from_request(request), self.data_type, self.many)
         return Response(converted_result)
@@ -42,7 +44,7 @@ class ManagerMethodWrapper(object):
         self.many = getattr(self.method, 'many', False)
 
     def __call__(self, request, *args, **kwargs):
-        params = extract_rest_params(request, self.arg_types)
+        params = extract_rest_params(request, self.arg_types, required_params(self.method, skip_self=True))
         result = self.method(**params)
         converted_result = convert_result(result, embedded_dict_from_request(request), self.data_type, self.many)
         return Response(converted_result)
@@ -51,10 +53,8 @@ class ManagerMethodWrapper(object):
 class InstanceViewSet(ModelViewSet):
     model_serializer_class = AutoModelSerializer
 
-    permission_classes = (IsStaff,)
-
-    renderer_classes = (ModelJSONRenderer, )
     filter_backend = QuerySetFilterBackend
+    renderer_classes = tuple([ModelJSONRenderer] + list(ModelViewSet.renderer_classes))
 
     filtering = {
         '*': {

@@ -1,5 +1,6 @@
 import json
 import types
+import warnings
 
 from django.db.models import Model
 from django.shortcuts import get_object_or_404
@@ -16,6 +17,29 @@ def convert_param_value(param_type, param_value):
         return param_type.objects.get(id=int(param_value))
 
     return param_type(param_value)
+
+
+def required_params(func, skip_self=False):
+    """
+    Returns the list of unfilled non-default params, which:
+        - Don't have default values
+        - Are not filled using args
+        - Are not filled using kwargs
+    """
+    arguments = func.func_code.co_varnames[:func.func_code.co_argcount]  # slicing to cut off * and ** args
+    defaults = func.func_defaults
+
+    num_of_defaults = len(defaults or [])
+
+    # non default params are all params except the last "num_of_defaults"  could be empty
+    non_default_args = arguments[:-num_of_defaults] if num_of_defaults else arguments
+
+    if skip_self:
+        if len(non_default_args) == 0 or non_default_args[0] != 'self':
+            warnings.warn("Skipping self for required params failed")
+        return non_default_args[1:]
+
+    return non_default_args
 
 
 def extract_rest_params(request, param_types, required_params=None):

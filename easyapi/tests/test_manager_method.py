@@ -1,5 +1,5 @@
 import json
-from rest_framework.status import HTTP_200_OK
+from rest_framework.status import HTTP_200_OK, HTTP_400_BAD_REQUEST
 
 from easyapi.tests.factories import CompanyFactory, ProjectFactory
 
@@ -64,4 +64,17 @@ def test_manager_method_embedded_default(staff_api_client):
 
 
     assert len(response_data['_embedded']['projects']) == 1
+
+@pytest.mark.django_db
+def test_manager_method_detect_required(staff_api_client):
+    # create 3 companies with known country and 6 with random
+
+    response = staff_api_client.get('/auto-list/test_project/manager-manager/plus/?a=1')
+    assert response.status_code == HTTP_400_BAD_REQUEST
+
+    response_data = json.loads(response.content)
+    assert 'Param "b" is required' == response_data['detail']
+
+
+
 
